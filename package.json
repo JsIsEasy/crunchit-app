@@ -1,8 +1,6 @@
 {
   "private":"true",
   "dependencies": {
-    "fastify": "^5.5.0",
-    "nextjs": "^0.0.3",
     "pnpm": "^10.15.0"
   },
   "packageManager": "pnpm@10.15.0",
@@ -13,7 +11,6 @@
   },
   "devDependencies": {
     "turbo": "^2.5.6",
-    "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.0",
     "eslint": "^9.34.0",
     "globals": "^16.3.0",

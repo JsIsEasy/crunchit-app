@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend repository for crunch it application.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": ""
+  },
+  "keywords": [],
+  "author": "karannakra1@gmail.com",
+  "license": "MIT",
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "fastify": "^5.5.0"
+  }
+}

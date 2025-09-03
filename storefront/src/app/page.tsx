@@ -1,18 +1,18 @@
+import DragAndDrop from "./components/drag-and-drop";
+
 export default function LandingPage() {
   return (
     <>
       <main className="flex flex-col items-center text-center max-w-3xl">
         <h2 className="text-5xl font-extrabold mb-6">
-          Compress & Convert <span className="text-emerald-400 drop-shadow-[0_0_5px_text-primary-green]">Files</span> in
+          Compress & Convert <span className="text-hover-green drop-shadow-[0_0_5px_text-primary-green]">Files</span> in
           Seconds
         </h2>
         <p className="text-lg mb-8 text-gray-300">
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <button className="px-8 py-4 bg-emerald-500 text-black font-semibold rounded-2xl shadow-[0_0_8px_rgba(16,185,129,0.4)] hover:scale-105 hover:bg-emerald-400 transition cursor-pointer">
-          Get Started →
-        </button>
+        <DragAndDrop />
       </main>
 
       {/* Features */}

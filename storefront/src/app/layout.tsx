@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`overscroll-y-none overscroll-none min-h-screen bg-gradient-to-br from-black via-gray-900 to-emerald-950 flex flex-col items-center justify-center text-white p-6`}
+        className={`overscroll-y-none overscroll-none min-h-screen bg-gradient-to-br from-black via-gray-900 to-emerald-950 flex flex-col items-center text-white p-6`}
       >
         {/* Header */}
         <Header />

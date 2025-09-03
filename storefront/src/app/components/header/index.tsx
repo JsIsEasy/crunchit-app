@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 function Header() {
   return (
     <header className="w-full max-w-5xl flex justify-between items-center mb-16">
@@ -6,9 +7,6 @@ function Header() {
         CrunchIt
       </Link>
       <nav className="flex gap-6 text-lg">
-        <Link href="login" className="hover:text-hover-green transition-colors">
-          Log In
-        </Link>
         <Link href="about" className="hover:text-hover-green transition-colors">
           About
         </Link>

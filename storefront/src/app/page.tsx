@@ -1,4 +1,4 @@
-import DragAndDrop from "./components/drag-and-drop";
+import { FileUploaderUI } from "@components";
 
 export default function LandingPage() {
   return (
@@ -12,7 +12,7 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <DragAndDrop />
+        <FileUploaderUI />
       </main>
 
       {/* Features */}

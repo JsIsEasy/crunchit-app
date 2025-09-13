@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import { supportedMEMETypes } from "@/app/utils/regex";
+import { supportedMEMETypes } from "@lib/constant";
 
-function FileUploaderUI() {
+export function FileUploaderUI() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function openFileUploader() {
@@ -14,7 +14,6 @@ function FileUploaderUI() {
     evt.preventDefault();
 
     const controlsCollection = (evt.target as HTMLFormElement).elements;
-
     const uploadFileInput = controlsCollection.namedItem("uploadFile") as HTMLInputElement;
     const compressionPercent = controlsCollection.namedItem("compression") as HTMLSelectElement;
 
@@ -89,5 +88,3 @@ function FileUploaderUI() {
     </form>
   );
 }
-
-export default FileUploaderUI;

@@ -1,4 +1,4 @@
-function Login() {
+function LoginPage() {
   <div> IN PROGRESS</div>;
 }
-export default Login;
+export default LoginPage;

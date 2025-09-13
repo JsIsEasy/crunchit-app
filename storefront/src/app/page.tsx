@@ -1,6 +1,13 @@
-import DragAndDrop from "./components/drag-and-drop";
+"use client";
+
+import { FileUploaderUI, Progress } from "@ui";
+import { useState } from "react";
 
 export default function LandingPage() {
+  
+  const [uploadingStatus, setUploading] = useState<uploadingStatus>();
+
+  const onUploadStart = () => {};
   return (
     <>
       <main className="flex flex-col items-center text-center max-w-3xl">
@@ -12,8 +19,10 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <DragAndDrop />
+        <FileUploaderUI onUploadStart={onUploadStart} />
       </main>
+
+      <Progress value={10}/>
 
       {/* Features */}
       <section id="features" className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-5xl w-full">

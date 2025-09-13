@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-function Header() {
+export function Header() {
   return (
     <header className="w-full max-w-5xl flex justify-between items-center mb-16">
       <Link href="/" className="text-3xl font-bold tracking-tight text-hover-green drop-shadow-[0_0_6px_text-primary-green]">
@@ -14,5 +14,3 @@ function Header() {
     </header>
   );
 }
-
-export default Header;

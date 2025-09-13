@@ -5,7 +5,7 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
-function Progress({
+export function Progress({
   className,
   value,
   ...props
@@ -27,5 +27,3 @@ function Progress({
     </ProgressPrimitive.Root>
   )
 }
-
-export default Progress;

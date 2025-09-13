@@ -2,8 +2,13 @@
 
 import { useRef } from "react";
 import { supportedMEMETypes } from "@lib/constant";
+import { uploadFiles } from "@/services";
 
-export function FileUploaderUI() {
+type Props = {
+  onUploadStart: (formData: FormData) => void;
+};
+
+export function FileUploaderUI({ onUploadStart }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function openFileUploader() {
@@ -32,6 +37,8 @@ export function FileUploaderUI() {
         formData.append(`files[]`, file);
       }
     }
+
+    onUploadStart(formData);
   }
 
   return (

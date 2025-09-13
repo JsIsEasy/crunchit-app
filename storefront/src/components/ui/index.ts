@@ -1,1 +1,4 @@
-export { default as Progress } from "./progress";
+export * from "./progress";
+export * from "./file-uploader";
+export * from "./footer";
+export * from "./header";

@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import { supportedMEMETypes } from "@lib/constant";
-import { uploadFiles } from "@/services";
+import { MAX_FILE_SIZE, supportedMEMETypes } from "@lib/constant";
 
 type Props = {
-  onUploadStart: (formData: FormData) => void;
+  onUploadStartAction: (formData: FormData) => void;
 };
 
-export function FileUploaderUI({ onUploadStart }: Props) {
+export function FileUploaderUI({ onUploadStartAction }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function openFileUploader() {
@@ -19,7 +18,7 @@ export function FileUploaderUI({ onUploadStart }: Props) {
     evt.preventDefault();
 
     const controlsCollection = (evt.target as HTMLFormElement).elements;
-    const uploadFileInput = controlsCollection.namedItem("uploadFile") as HTMLInputElement;
+    const uploadFileInput = controlsCollection.namedItem("upload-file") as HTMLInputElement;
     const compressionPercent = controlsCollection.namedItem("compression") as HTMLSelectElement;
 
     const formData = new FormData();
@@ -34,11 +33,15 @@ export function FileUploaderUI({ onUploadStart }: Props) {
           continue;
         }
 
+        if (MAX_FILE_SIZE < file.size) {
+          continue;
+        }
+
         formData.append(`files[]`, file);
       }
     }
 
-    onUploadStart(formData);
+    onUploadStartAction(formData);
   }
 
   return (
@@ -68,7 +71,9 @@ export function FileUploaderUI({ onUploadStart }: Props) {
 
       {/* Compression Selector */}
       <div className="flex items-center gap-3">
-        <label className="text-white">Compression:</label>
+        <label htmlFor="compression-selector" className="text-white">
+          Compression:
+        </label>
         <select
           id="compression-selector"
           name="compression"

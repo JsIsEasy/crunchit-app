@@ -1,0 +1,5 @@
+function uploadFileController (){
+
+}
+
+export {uploadFileController};

@@ -1,9 +1,14 @@
 import { Footer, Header } from "@ui";
+import { customMetaData } from "./metadata";
 import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Crunch it",
+  ...customMetaData, // So that I could override some content from this root layout.
+  title: {
+    template: "%s | Crunch it",
+    default: "Crunch it",
+  },
   description: "your one stop app for image conversion.",
 };
 
@@ -12,11 +17,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log({ ...customMetaData });
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-      </head>
       <body
         className={`overscroll-y-none overscroll-none min-h-screen bg-gradient-to-br from-black via-gray-900 to-emerald-950 flex flex-col items-center text-white p-6`}
       >

@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import Image from "next/image";
+
+export const metadata: Metadata = {
+  title:"About",
+  description:"About page of crunch it app."
+}
 
 function AboutPage() {
   return (

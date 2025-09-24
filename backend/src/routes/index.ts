@@ -4,8 +4,8 @@ import { pingRoutes } from "./ping.routes";
 import { statusRoutes } from "./status.routes";
 
 export function routes(fastify: FastifyInstance, opts: FastifyPluginOptions, done: () => void) {
-  statusRoutes(fastify)
   uploadRoutes(fastify);
   pingRoutes(fastify);
+  statusRoutes(fastify);
   done();
 }

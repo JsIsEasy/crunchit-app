@@ -7,6 +7,7 @@
     "clean": "rm -rf dist",
     "build": "pnpm clean && pnpm check-types && tsup src/server.ts",
     "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.mjs",
     "check-types": "tsc --noEmit"
   },
   "type": "module",
@@ -14,12 +15,16 @@
     "compress",
     "compression",
     "convert",
-    "jpeg to png"
+    "jpeg to png",
+    "png to jpeg",
+    "svg to png"
   ],
   "author": "karannakra1@gmail.com",
   "license": "MIT",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
+    "@fastify/env": "^5.0.3",
+    "@fastify/mysql": "^5.0.2",
     "@fastify/websocket": "^11.2.0",
     "fastify": "^5.5.0"
   },

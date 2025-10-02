@@ -1,21 +1,22 @@
 {
-  "private":"true",
+  "private": "true",
   "dependencies": {
     "pnpm": "^10.15.0"
   },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev":"turbo run dev --parallel",
-    "build":"turbo run build",
-    "check-types":"turbo run check-types",
-    "lint":"turbo run lint"
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "lint": "turbo run lint"
   },
   "devDependencies": {
-    "turbo": "^2.5.6",
+    "@biomejs/biome": "2.2.5",
     "@types/node": "^24.3.0",
     "eslint": "^9.34.0",
     "globals": "^16.3.0",
     "jiti": "^2.5.1",
+    "turbo": "^2.5.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0"
   }

@@ -1,3 +1,5 @@
 const supportedMEMETypes = /^image\/.*|^video\/.*/;
 
-export { supportedMEMETypes };
+const MAX_FILE_SIZE = 1024 * 1024 * 10; // 10 MB
+
+export { supportedMEMETypes, MAX_FILE_SIZE };

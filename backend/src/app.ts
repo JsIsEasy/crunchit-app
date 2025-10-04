@@ -16,7 +16,7 @@ export async function buildApp() {
     promise: true,
     connectionString: `mysql://${fastify.config.DB_USER}:${fastify.config.DB_PASSWORD}@${fastify.config.MYSQL_DB_HOST}/${fastify.config.DB_NAME}`,
   });
-  fastify.register(fastifyMultipart, { attachFieldsToBody: true, limits: { fileSize: 10000000 } });
+  fastify.register(fastifyMultipart, { limits: { fileSize: 10000000 } });
   fastify.register(fastifyWebsocket);
   fastify.register(routes, { prefix: "api" });
 

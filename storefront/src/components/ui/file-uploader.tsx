@@ -1,25 +1,36 @@
 "use client";
 
+import { MAX_FILE_SIZE, supportedMEMETypes } from "@lib/constant";
 import { useRef } from "react";
-import { supportedMEMETypes } from "@lib/constant";
-import { uploadFiles } from "@/services";
 
 type Props = {
-  onUploadStart: (formData: FormData) => void;
+  onUploadStartAction: (formData: FormData) => void;
 };
 
-export function FileUploaderUI({ onUploadStart }: Props) {
+export function FileUploaderUI({ onUploadStartAction }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function openFileUploader() {
     fileInputRef.current?.click();
   }
 
+  function splitFilesIntoCategory(files: File[]) {
+    const validFiles: File[] = [];
+    const invalidFiles: File[] = [];
+
+    files.forEach((file) => {
+      const isInValid = !supportedMEMETypes.test(file.type) || MAX_FILE_SIZE < file.size;
+      isInValid ? invalidFiles.push(file) : validFiles.push(file);
+    });
+
+    return [validFiles, invalidFiles];
+  }
+
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
 
     const controlsCollection = (evt.target as HTMLFormElement).elements;
-    const uploadFileInput = controlsCollection.namedItem("uploadFile") as HTMLInputElement;
+    const uploadFileInput = controlsCollection.namedItem("upload-file") as HTMLInputElement;
     const compressionPercent = controlsCollection.namedItem("compression") as HTMLSelectElement;
 
     const formData = new FormData();
@@ -29,16 +40,46 @@ export function FileUploaderUI({ onUploadStart }: Props) {
     }
 
     if (uploadFileInput.files && uploadFileInput.files?.length > 0) {
-      for (const file of Array.from(uploadFileInput.files)) {
-        if (!supportedMEMETypes.test(file.type)) {
-          continue;
-        }
+      const [validFiles] = splitFilesIntoCategory(Array.from(uploadFileInput.files));
 
-        formData.append(`files[]`, file);
+      if (validFiles.length <= 0) {
+        return;
       }
+
+      validFiles.forEach((file) => {
+        formData.append("files[]", file);
+      });
+
+      onUploadStartAction(formData);
+    }
+  }
+
+  function catchIt(evt: React.DragEvent) {
+    evt.currentTarget.classList.remove("border-green-400", "bg-green-900/10");
+    evt.preventDefault();
+    
+
+    const [validFiles] = splitFilesIntoCategory(Array.from(evt.dataTransfer.files));
+
+    const formData = new FormData();
+
+    if (validFiles.length <= 0) {
+      return;
     }
 
-    onUploadStart(formData);
+    validFiles.forEach((file) => {
+      formData.append("files[]", file);
+    });
+
+    onUploadStartAction(formData);
+  }
+
+  function handleDragAndDrop(evt: React.MouseEvent) {
+    evt.currentTarget.classList.add("border-green-400", "bg-green-900/10");
+  }
+
+  function onDragOver(evt: React.DragEvent) {
+    evt.preventDefault();
   }
 
   return (
@@ -47,6 +88,10 @@ export function FileUploaderUI({ onUploadStart }: Props) {
       <div
         id="file-uploader-button"
         role="button"
+        onDrop={catchIt}
+        onDragEnter={handleDragAndDrop}
+        onDragOver={onDragOver}
+        onDragLeave={handleDragAndDrop}
         tabIndex={-1}
         onClick={openFileUploader}
         className="w-full max-w-md p-10 rounded-2xl border-2 border-dashed cursor-pointer
@@ -68,7 +113,9 @@ export function FileUploaderUI({ onUploadStart }: Props) {
 
       {/* Compression Selector */}
       <div className="flex items-center gap-3">
-        <label className="text-white">Compression:</label>
+        <label htmlFor="compression-selector" className="text-white">
+          Compression:
+        </label>
         <select
           id="compression-selector"
           name="compression"

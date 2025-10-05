@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `file_name` VARCHAR(255) NOT NULL,
   `s3_key` VARCHAR(255) NOT NULL,
   `compressed_s3_key` VARCHAR(255) NULL,
-  `current_status` VARCHAR(50) NOT NULL,
+  `current_status` ENUM("QUEUED","PROCESSING","COMPLETED","FAILED") NOT NULL DEFAULT "QUEUED",
 
-  `started_at` DATETIME NULL,
+  `started_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `finished_at` DATETIME NULL,
 
   `operation_type` VARCHAR(50) NOT NULL,

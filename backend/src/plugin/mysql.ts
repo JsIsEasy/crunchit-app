@@ -1,4 +1,6 @@
-import fastifyMysql, { type MySQLPromisePool } from "@fastify/mysql";
+import fastifyMysql, {
+  type MySQLPromisePool
+} from "@fastify/mysql";
 import type { FastifyInstance } from "fastify";
 
 // if you passed promise = true

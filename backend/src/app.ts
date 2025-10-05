@@ -1,5 +1,4 @@
 import fastifyAutoload from "@fastify/autoload";
-import { fastifyEnv } from "@fastify/env";
 import Fastify from "fastify";
 import path from "path";
 import { routes } from "./routes";

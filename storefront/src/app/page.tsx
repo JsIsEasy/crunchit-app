@@ -1,14 +1,12 @@
 "use client";
 
-import { FileUploaderUI, Progress } from "@ui";
-import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { uploadFiles } from "@services";
+import { FileUploaderUI, Progress } from "@ui";
+import { FileText } from "lucide-react";
 
 export default function LandingPage() {
-  const [uploadingStatus, setUploading] = useState<uploadingStatus>();
-
   const onUploadStart = async (formData: FormData) => {
-    setUploading("uploading");
     await uploadFiles(formData);
   };
 
@@ -26,7 +24,74 @@ export default function LandingPage() {
         <FileUploaderUI onUploadStartAction={uploadFiles} />
       </main>
 
-      <Progress value={10} />
+      <section id="file-cards" className="mt-20 flex gap-10">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div>
+                <FileText size={40} />
+              </div>
+              <div>Annual Report 2024.pdf</div>
+            </CardTitle>
+            <CardDescription>Uploading....</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-2 border rounded-2xl">
+              <Progress value={10} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div>
+                <FileText size={40} />
+              </div>
+              <div>Annual Report 2024.pdf</div>
+            </CardTitle>
+            <CardDescription>Uploading....</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-2 border rounded-2xl">
+              <Progress value={10} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div>
+                <FileText size={40} />
+              </div>
+              <div>Annual Report 2024.pdf</div>
+            </CardTitle>
+            <CardDescription>Uploading....</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-2 border rounded-2xl">
+              <Progress value={10} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div>
+                <FileText size={40} />
+              </div>
+              <div>Annual Report 2024.pdf</div>
+            </CardTitle>
+            <CardDescription>Uploading....</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-2 border rounded-2xl">
+              <Progress value={10} />
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* Features */}
       <section id="features" className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-5xl w-full">

@@ -1,3 +1,4 @@
+import fastifyEnv from "@fastify/env";
 import { join } from "node:path";
 
 declare module "fastify" {
@@ -39,10 +40,12 @@ const schema = {
   },
 };
 
-export const options = {
+export const autoConfig = {
   schema,
   dotenv: {
     path: `${join(import.meta.dirname, "..", "env", ".env")}`,
     debug: true,
   },
 };
+
+export default fastifyEnv;

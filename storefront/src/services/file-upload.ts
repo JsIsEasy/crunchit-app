@@ -1,9 +1,10 @@
 import { urls } from "@/config";
 import api from "@/lib/axios";
 
-async function uploadFiles(files: File[]) {
+async function uploadFiles(formData: FormData) {
   try {
-    const response = await api(urls.fileUploadUrl);
+    const response = await api.post(urls.fileUploadUrl, formData);
+    
   } catch (error) {}
 }
 

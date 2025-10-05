@@ -15,8 +15,6 @@
     "paths": {
       "@src": ["./src/*"],
       "@controllers": ["./src/controllers/index.ts"],
-      "@config": ["./src/config/index.ts"],
-      "@schemas":["./src/schemas/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "env.d.ts"],

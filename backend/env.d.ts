@@ -9,17 +9,3 @@ declare namespace NodeJS {
       DB_NAME:string;
     }
   }
-
-// if you only pass connectionString
-declare module 'fastify' {
-  interface FastifyInstance {
-    mysql: MySQLPool
-  }
-}
-
-// if you passed promise = true
-declare module 'fastify' {
-  interface FastifyInstance {
-    mysql: MySQLPromisePool
-  }
-}

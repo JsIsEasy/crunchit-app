@@ -8,6 +8,7 @@
 /backend/dist
 # testing
 /coverage
+/backend/storage
 
 # next.js
 /.next/

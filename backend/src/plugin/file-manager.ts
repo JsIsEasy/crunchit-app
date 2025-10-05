@@ -1,10 +1,10 @@
+import type { MultipartFile } from "@fastify/multipart";
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import type { MultipartFile } from "@fastify/multipart";
 import fs from "fs";
-import { pipeline } from "node:stream/promises";
 import * as crypto from "node:crypto";
-import path, { join } from "node:path";
+import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
 
 declare module "fastify" {
   export interface FastifyInstance {

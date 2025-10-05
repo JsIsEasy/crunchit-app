@@ -1,10 +1,9 @@
 import { urls } from "@/config";
-import api from "@/lib/axios";
+import api, { AxiosProgressEvent } from "@/lib/axios";
 
-async function uploadFiles(formData: FormData) {
+async function uploadFiles(formData: FormData, onUploadProgress: (progressEvent: AxiosProgressEvent) => void) {
   try {
-    const response = await api.post(urls.fileUploadUrl, formData);
-    
+    await api.post(urls.fileUploadUrl, formData, { onUploadProgress });
   } catch (error) {}
 }
 

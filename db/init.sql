@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 
   `started_at` DATETIME NULL,
   `finished_at` DATETIME NULL,
+
+  `operation_type` VARCHAR(50) NOT NULL,
+  `target_format` ENUM('MP4','ZIP','JPG','PNG','WEBM','GIF') NULL,
+  `compression_level` TINYINT NULL, 
   
-  -- The field you wanted auto-created:
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
   
   PRIMARY KEY (`job_id`),

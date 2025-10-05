@@ -22,7 +22,9 @@ function createFileManager(fastify: FastifyInstance) {
 
     async upload(file: MultipartFile) {
       const fileName = this.rename(file.filename, file.mimetype);
-      const destPath = join(import.meta.dirname, "..", "..", "storage", fileName);
+      const dirPath = join(import.meta.dirname, "..", "..", "storage");
+      const destPath = join(dirPath, fileName);
+      this.ensureDir(dirPath);
       await pipeline(file.file, fs.createWriteStream(destPath));
       return fileName;
     },

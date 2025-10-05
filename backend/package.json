@@ -24,6 +24,7 @@
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
     "@fastify/autoload": "^6.3.1",
+    "@fastify/cors": "^11.1.0",
     "@fastify/env": "^5.0.3",
     "@fastify/multipart": "^9.2.1",
     "@fastify/mysql": "^5.0.2",

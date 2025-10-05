@@ -6,7 +6,7 @@ async function uploadFileController(this: FastifyInstance, request: FastifyReque
   const parts = request.parts();
 
   let compressionPercent: string;
-  
+
   const fileNames = [];
 
   for await (const part of parts) {
@@ -22,7 +22,7 @@ async function uploadFileController(this: FastifyInstance, request: FastifyReque
     outerThis.mySqlQuery.insert([v4(), name, "abcde", "compression", compressionPercent]);
   });
 
-  reply.send({ message: "success", code: 201 });
+  reply.send({ message: "success" }).code(201);
 }
 
 export { uploadFileController };

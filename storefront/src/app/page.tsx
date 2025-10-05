@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
 
 export default function LandingPage() {
   const onUploadStart = async (formData: FormData) => {
-    await uploadFiles(formData);
+    await uploadFiles(formData, (progressEvent) => {});
   };
 
   return (
@@ -21,7 +21,7 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <FileUploaderUI onUploadStartAction={uploadFiles} />
+        <FileUploaderUI onUploadStartAction={onUploadStart} />
       </main>
 
       <section id="file-cards" className="mt-20 flex gap-10">

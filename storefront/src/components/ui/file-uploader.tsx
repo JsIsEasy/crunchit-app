@@ -1,6 +1,6 @@
 "use client";
 
-import { MAX_FILE_SIZE, supportedMEMETypes } from "@lib/constant";
+import { splitFilesIntoCategory } from "@/lib/utils";
 import { useRef } from "react";
 
 type Props = {
@@ -14,18 +14,6 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
     fileInputRef.current?.click();
   }
 
-  function splitFilesIntoCategory(files: File[]) {
-    const validFiles: File[] = [];
-    const invalidFiles: File[] = [];
-
-    files.forEach((file) => {
-      const isInValid = !supportedMEMETypes.test(file.type) || MAX_FILE_SIZE < file.size;
-      isInValid ? invalidFiles.push(file) : validFiles.push(file);
-    });
-
-    return [validFiles, invalidFiles];
-  }
-
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
 
@@ -33,31 +21,31 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
     const uploadFileInput = controlsCollection.namedItem("upload-file") as HTMLInputElement;
     const compressionPercent = controlsCollection.namedItem("compression") as HTMLSelectElement;
 
-    const formData = new FormData();
-
-    if (compressionPercent) {
-      formData.append("compression-percentage", compressionPercent.value);
-    }
-
-    if (uploadFileInput.files && uploadFileInput.files?.length > 0) {
+    if (uploadFileInput.files && !!uploadFileInput.files?.length) {
       const [validFiles] = splitFilesIntoCategory(Array.from(uploadFileInput.files));
 
       if (validFiles.length <= 0) {
         return;
+        //todo: Show info toaster message;
       }
 
       validFiles.forEach((file) => {
-        formData.append("files[]", file);
-      });
+        const formData = new FormData();
 
-      onUploadStartAction(formData);
+        if (compressionPercent) {
+          formData.append("compression-percentage", compressionPercent.value);
+        }
+
+        formData.append(`files`, file);
+
+        onUploadStartAction(formData);
+      });
     }
   }
 
   function catchIt(evt: React.DragEvent) {
     evt.currentTarget.classList.remove("border-green-400", "bg-green-900/10");
     evt.preventDefault();
-    
 
     const [validFiles] = splitFilesIntoCategory(Array.from(evt.dataTransfer.files));
 

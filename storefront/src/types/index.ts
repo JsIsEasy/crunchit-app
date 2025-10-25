@@ -1,1 +1,1 @@
-type uploadingStatus = "not-started" | "uploading" | "completed";
+type uploadingStatus = "uploading..." | "uploaded";

@@ -1,13 +1,30 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { findMaxPercent } from "@/lib/utils";
 import { uploadFiles } from "@services";
 import { FileUploaderUI, Progress } from "@ui";
 import { FileText } from "lucide-react";
+import { useState } from "react";
 
 export default function LandingPage() {
+  const [progress, setProgress] = useState<number>(-10); // todo: find why for non-negative numbers it's slightly showing progress bar
+  const [status, setStatus] = useState<"uploading..." | "uploaded">();
   const onUploadStart = async (formData: FormData) => {
-    await uploadFiles(formData);
+    setStatus("uploading...");
+
+    uploadFiles(formData, (progressEvent) => {
+      if (!progressEvent.total) {
+        return;
+      }
+
+      const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
+      setProgress(loadedPercent);
+
+      if(loadedPercent === 100) {
+        setStatus('uploaded'); // todo: Improve;
+      }
+    });
   };
 
   return (
@@ -21,7 +38,7 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <FileUploaderUI onUploadStartAction={uploadFiles} />
+        <FileUploaderUI onUploadStartAction={onUploadStart} />
       </main>
 
       <section id="file-cards" className="mt-20 flex gap-10">
@@ -33,61 +50,11 @@ export default function LandingPage() {
               </div>
               <div>Annual Report 2024.pdf</div>
             </CardTitle>
-            <CardDescription>Uploading....</CardDescription>
+            <CardDescription>{status}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="p-2 border rounded-2xl">
-              <Progress value={10} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div>
-                <FileText size={40} />
-              </div>
-              <div>Annual Report 2024.pdf</div>
-            </CardTitle>
-            <CardDescription>Uploading....</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="p-2 border rounded-2xl">
-              <Progress value={10} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div>
-                <FileText size={40} />
-              </div>
-              <div>Annual Report 2024.pdf</div>
-            </CardTitle>
-            <CardDescription>Uploading....</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="p-2 border rounded-2xl">
-              <Progress value={10} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div>
-                <FileText size={40} />
-              </div>
-              <div>Annual Report 2024.pdf</div>
-            </CardTitle>
-            <CardDescription>Uploading....</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="p-2 border rounded-2xl">
-              <Progress value={10} />
+              <Progress value={progress} />
             </div>
           </CardContent>
         </Card>

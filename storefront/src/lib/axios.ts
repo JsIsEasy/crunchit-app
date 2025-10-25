@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosProgressEvent } from "axios";
 import { urls } from "@/config";
 
 const api = axios.create({
@@ -14,4 +14,5 @@ api.interceptors.response.use(
   }
 );
 
+export { AxiosProgressEvent };
 export default api;

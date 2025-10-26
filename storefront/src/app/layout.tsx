@@ -2,6 +2,7 @@ import { Footer, Header } from "@ui";
 import { customMetaData } from "./metadata";
 import type { Metadata } from "next";
 import "./globals.css";
+import { CrunchItProvider } from "@/store";
 
 export const metadata: Metadata = {
   ...customMetaData, // So that I could override some content from this root layout.
@@ -24,7 +25,7 @@ export default function RootLayout({
       >
         {/* Header */}
         <Header />
-        {children}
+        <CrunchItProvider>{children}</CrunchItProvider>
         {/* Footer */}
         <Footer />
       </body>

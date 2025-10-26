@@ -2,16 +2,21 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { findMaxPercent } from "@/lib/utils";
+import { useCrunchItStore } from "@/store";
 import { uploadFiles } from "@services";
 import { FileUploaderUI, Progress } from "@ui";
-import { FileText } from "lucide-react";
-import { useState } from "react";
+import { FileDiff, FileText } from "lucide-react";
 
 export default function LandingPage() {
-  const [progress, setProgress] = useState<number>(-10); // todo: find why for non-negative numbers it's slightly showing progress bar
-  const [status, setStatus] = useState<"uploading..." | "uploaded">();
-  const onUploadStart = async (formData: FormData) => {
-    setStatus("uploading...");
+  const { filesData } = useCrunchItStore((state) => state);
+
+  const onUploadStart = async () => {
+    const filesToUpload = Object.keys(filesData).map((key) => {
+      const fileData = filesData[key];
+      const form = new FormData();
+
+      form.append("files", fileData.fileInfo.file);
+    });
 
     uploadFiles(formData, (progressEvent) => {
       if (!progressEvent.total) {
@@ -19,11 +24,6 @@ export default function LandingPage() {
       }
 
       const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
-      setProgress(loadedPercent);
-
-      if(loadedPercent === 100) {
-        setStatus('uploaded'); // todo: Improve;
-      }
     });
   };
 
@@ -42,22 +42,27 @@ export default function LandingPage() {
       </main>
 
       <section id="file-cards" className="mt-20 flex gap-10">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div>
-                <FileText size={40} />
-              </div>
-              <div>Annual Report 2024.pdf</div>
-            </CardTitle>
-            <CardDescription>{status}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="p-2 border rounded-2xl">
-              <Progress value={progress} />
-            </div>
-          </CardContent>
-        </Card>
+        {Object.keys(filesData).map((fileId) => {
+          const fileData = filesData[fileId];
+          return (
+            <Card key={fileId}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div>
+                    <FileText size={40} />
+                  </div>
+                  <div>Annual Report 2024.pdf</div>
+                </CardTitle>
+                <CardDescription>{fileData.currentState}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="p-2 border rounded-2xl">
+                  <Progress value={fileData.progressInfo.progress} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </section>
 
       {/* Features */}

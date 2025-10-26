@@ -1,6 +1,7 @@
 "use client";
 
 import { splitFilesIntoCategory } from "@/lib/utils";
+import { useCrunchItStore } from "@/store";
 import { useRef } from "react";
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 
 export function FileUploaderUI({ onUploadStartAction }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setFilesData } = useCrunchItStore((store) => store);
 
   function openFileUploader() {
     fileInputRef.current?.click();
@@ -17,9 +19,33 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
 
-    const controlsCollection = (evt.target as HTMLFormElement).elements;
-    const uploadFileInput = controlsCollection.namedItem("upload-file") as HTMLInputElement;
-    const compressionPercent = controlsCollection.namedItem("compression") as HTMLSelectElement;
+    // const crunchItForm = evt.target as HTMLFormElement;
+    // const compressionPercentage = crunchItForm.elements.namedItem("compression-selector") as HTMLSelectElement;
+
+    // todo: will be implemented soon...
+  }
+
+  function catchIt(evt: React.DragEvent) {
+    evt.currentTarget.classList.remove("border-green-400", "bg-green-900/10");
+    evt.preventDefault();
+
+    const [validFiles] = splitFilesIntoCategory(Array.from(evt.dataTransfer.files));
+
+    if (validFiles.length <= 0) {
+      return;
+    }
+
+    validFiles.forEach((file) => {
+      setFilesData({
+        fileInfo: { file, crunchOperation: { type: "compression", data: { percentage: 70 } } },
+        currentState: "ready-to-upload",
+        progressInfo: { type: "uploading", progress: 0 },
+      });
+    });
+  }
+
+  function onFileUpload(evt: React.ChangeEvent) {
+    const uploadFileInput = evt.target as HTMLInputElement;
 
     if (uploadFileInput.files && !!uploadFileInput.files?.length) {
       const [validFiles] = splitFilesIntoCategory(Array.from(uploadFileInput.files));
@@ -30,36 +56,13 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
       }
 
       validFiles.forEach((file) => {
-        const formData = new FormData();
-
-        if (compressionPercent) {
-          formData.append("compression-percentage", compressionPercent.value);
-        }
-
-        formData.append(`files`, file);
-
-        onUploadStartAction(formData);
+        setFilesData({
+          fileInfo: { file, crunchOperation: { type: "compression", data: { percentage: 70 } } },
+          currentState: "ready-to-upload",
+          progressInfo: { progress: -10, type: "uploading" },
+        });
       });
     }
-  }
-
-  function catchIt(evt: React.DragEvent) {
-    evt.currentTarget.classList.remove("border-green-400", "bg-green-900/10");
-    evt.preventDefault();
-
-    const [validFiles] = splitFilesIntoCategory(Array.from(evt.dataTransfer.files));
-
-    const formData = new FormData();
-
-    if (validFiles.length <= 0) {
-      return;
-    }
-
-    validFiles.forEach((file) => {
-      formData.append("files[]", file);
-    });
-
-    onUploadStartAction(formData);
   }
 
   function handleDragAndDrop(evt: React.MouseEvent) {
@@ -96,6 +99,7 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
         accept="video/*, image/*"
         className="hidden"
         ref={fileInputRef}
+        onChange={onFileUpload}
         multiple={true}
       />
 

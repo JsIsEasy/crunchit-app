@@ -24,4 +24,4 @@ export function findMaxPercent(loaded: number, total: number) {
   const fixedValue = Number((loaded / total).toFixed(2));
 
   return Math.min(fixedValue * maxPercent, maxPercent);
-}
+};

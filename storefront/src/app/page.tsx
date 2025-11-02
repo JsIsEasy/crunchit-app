@@ -1,29 +1,58 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { dbStatusToDisplay } from "@/lib/constant";
 import { findMaxPercent } from "@/lib/utils";
 import { useCrunchItStore } from "@/store";
 import { uploadFiles } from "@services";
 import { FileUploaderUI, Progress } from "@ui";
-import { FileDiff, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 export default function LandingPage() {
-  const { filesData } = useCrunchItStore((state) => state);
+  const { filesData, updateFileData } = useCrunchItStore((state) => state);
 
   const onUploadStart = async () => {
-    const filesToUpload = Object.keys(filesData).map((key) => {
-      const fileData = filesData[key];
-      const form = new FormData();
+    // Todo: Need improvement
+    const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
 
-      form.append("files", fileData.fileInfo.file);
-    });
+    fileKeysToUpload.forEach((key) => {
+      const fileData = { ...filesData[key] };
 
-    uploadFiles(formData, (progressEvent) => {
-      if (!progressEvent.total) {
-        return;
+      const operationInfo = JSON.stringify(fileData.fileInfo.crunchOperation);
+
+      const formData = new FormData();
+
+      formData.append("file", fileData.fileInfo.file);
+      formData.append("fileOperation", operationInfo); // Order is important
+
+      if (fileData.currentState !== "uploading") {
+        fileData.currentState = "uploading";
       }
 
-      const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
+      updateFileData(key, fileData);
+
+      uploadFiles(
+        formData,
+        (progressEvent) => {
+          if (!progressEvent.total) {
+            return;
+          }
+
+          const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
+
+          if (loadedPercent === 100 && fileData.currentState !== "uploaded") {
+            fileData.currentState = "uploaded";
+          }
+
+          fileData.progressInfo.progress = loadedPercent;
+
+          updateFileData(key, fileData);
+        },
+        (error) => {
+          fileData.currentState ='upload-failed';
+          updateFileData(key,fileData);
+        }
+      );
     });
   };
 
@@ -53,7 +82,7 @@ export default function LandingPage() {
                   </div>
                   <div>Annual Report 2024.pdf</div>
                 </CardTitle>
-                <CardDescription>{fileData.currentState}</CardDescription>
+                <CardDescription>{dbStatusToDisplay[fileData.currentState]}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="p-2 border rounded-2xl">

@@ -10,8 +10,8 @@ declare module "fastify" {
 function mySqlQueryManager(fastify: FastifyInstance) {
   return {
     insert(values: string[]) {
-      const placeholders = Array.from(values, (v) => "?");
-      const keys = ["job_id", "file_name", "s3_key", "operation_type", "compression_level"];
+      const placeholders = Array.from(values, () => "?");
+      const keys = ["job_id", "file_name", "s3_key", "operation_type", "operation_metadata"];
       return fastify.mysql.query(`INSERT INTO jobs (${keys.join(" , ")}) VALUES (${placeholders.join(" ,")});`, values);
     },
   };

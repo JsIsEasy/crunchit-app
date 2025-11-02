@@ -14,6 +14,9 @@ declare module "fastify" {
 
 function createFileManager(fastify: FastifyInstance) {
   return {
+    get getDirPath() {
+      return join(import.meta.dirname, "..", "..", "storage");
+    },
     ensureDir(dir: string) {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -22,7 +25,7 @@ function createFileManager(fastify: FastifyInstance) {
 
     async upload(file: MultipartFile) {
       const fileName = this.rename(file.filename, file.mimetype);
-      const dirPath = join(import.meta.dirname, "..", "..", "storage");
+      const dirPath = this.getDirPath;
       const destPath = join(dirPath, fileName);
       this.ensureDir(dirPath);
       await pipeline(file.file, fs.createWriteStream(destPath));
@@ -33,12 +36,13 @@ function createFileManager(fastify: FastifyInstance) {
       await fs.promises.rename(source, destination);
     },
 
-    async unlink(filePath: string) {
+    async unlink(fileName: string) {
       try {
+        const filePath = join(this.getDirPath, fileName);
         await fs.promises.unlink(filePath);
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
-          fastify.log.warn(`File path '${filePath}' not found`);
+          fastify.log.warn(`File path '${fileName}' not found`);
         } else {
           throw err;
         }

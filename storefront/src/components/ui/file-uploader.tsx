@@ -5,7 +5,7 @@ import { useCrunchItStore } from "@/store";
 import { useRef } from "react";
 
 type Props = {
-  onUploadStartAction: (formData: FormData) => void;
+  onUploadStartAction: () => void;
 };
 
 export function FileUploaderUI({ onUploadStartAction }: Props) {
@@ -18,6 +18,8 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
 
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
+
+    onUploadStartAction();
 
     // const crunchItForm = evt.target as HTMLFormElement;
     // const compressionPercentage = crunchItForm.elements.namedItem("compression-selector") as HTMLSelectElement;
@@ -38,7 +40,7 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
     validFiles.forEach((file) => {
       setFilesData({
         fileInfo: { file, crunchOperation: { type: "compression", data: { percentage: 70 } } },
-        currentState: "ready-to-upload",
+        currentState: "ready-to-crunch",
         progressInfo: { type: "uploading", progress: 0 },
       });
     });
@@ -58,7 +60,7 @@ export function FileUploaderUI({ onUploadStartAction }: Props) {
       validFiles.forEach((file) => {
         setFilesData({
           fileInfo: { file, crunchOperation: { type: "compression", data: { percentage: 70 } } },
-          currentState: "ready-to-upload",
+          currentState: "ready-to-crunch",
           progressInfo: { progress: -10, type: "uploading" },
         });
       });

@@ -1,6 +1,6 @@
 import { createStore } from "zustand/vanilla";
 
-type AllowedUploadStatuses = "ready-to-upload" | "uploading" | "uploaded" | "upload-failed";
+type AllowedUploadStatuses = "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
 type AllowedCrunchStatuses = "crunching" | "crunched" | "ready-to-download" | "crunch-failed";
 type AllowedDownloadStatuses = "downloading" | "downloaded" | "download-failed";
 type AllowedCompressionPercentages = 90 | 70 | 50 | 30;
@@ -17,8 +17,8 @@ type Compression = {
 type Conversion = {
   type: "conversion";
   data: {
-    convertFrom: string;
-    convertTo: string;
+    originalFormat: string;
+    targetFormat: string;
   };
 };
 
@@ -57,6 +57,7 @@ export type CrunchItState = {
 
 export type CrunchItActions = {
   setFilesData: (fileData: FileData, fileId?: string) => void;
+  updateFileData: (fileId: string, fileUpdate: FileData) => void;
 };
 
 export const defaultCrunchItState: CrunchItState = {
@@ -68,9 +69,11 @@ export type CrunchItStore = CrunchItState & CrunchItActions;
 export const createCrunchItStore = (initState: CrunchItState = defaultCrunchItState) => {
   return createStore<CrunchItStore>((set) => ({
     ...initState,
+    //todo: Almost similar with setFilesData, Find improvement
+    updateFileData: (fileId: string, fileUpdate: FileData) => {
+      set((state) => ({ filesData: { ...state.filesData, [fileId]: fileUpdate } }));
+    },
     setFilesData: (fileData, fileId = (Date.now() + Date.now()).toString()) =>
-      set(() => {
-        return { filesData: { [fileId]: fileData } };
-      }),
+      set((state) => ({ filesData: { ...state.filesData, [fileId]: fileData } })),
   }));
 };

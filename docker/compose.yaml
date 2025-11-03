@@ -10,5 +10,16 @@ services:
       - MYSQL_DATABASE=crunchit
     ports:
       - 3306:3306
+  redis:
+    container_name: redis
+    image: redis:latest
+    command: ["redis-server", "--save", "900", "1", "--save", "300", "10", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+
 volumes:
   db_data:
+  redis_data:

@@ -20,7 +20,8 @@ export function useWebSocket() {
     console.log("Ws-Client: New message arrived!");
   }
 
-  function sendMessage() {
+  function sendMessage(message: string) {
+    socket.current?.send(message);
     console.log("Ws-Client: Sending new message!");
   }
 

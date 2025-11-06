@@ -47,6 +47,7 @@ type ProgressInfo = UploadProgress | CrunchItProgress | DownloadProgress;
 
 export type FileCrunchInfo = {
   file: File;
+  jobId?: string;
   crunchOperation: CrunchOperation;
 };
 

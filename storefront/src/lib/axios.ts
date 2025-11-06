@@ -2,7 +2,7 @@ import axios, { type AxiosProgressEvent } from "axios";
 import { urls } from "@/config";
 
 const api = axios.create({
-  baseURL: urls.serverUrl || "http://localhost:8000/api",
+  baseURL: `${urls.httProtocol}${urls.serverUrl}`|| "http://localhost:8000/api",
 });
 
 api.interceptors.response.use(

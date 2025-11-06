@@ -1,9 +1,13 @@
 import { urls } from "@/config";
 import api, { AxiosProgressEvent } from "@/lib/axios";
 
-async function uploadFiles(formData: FormData, onUploadProgress: (progressEvent: AxiosProgressEvent) => void, onError?: (error: unknown)=> void) {
+async function uploadFiles(
+  formData: FormData,
+  onUploadProgress: (progressEvent: AxiosProgressEvent) => void,
+  onError?: (error: unknown) => void
+) {
   try {
-    await api.post(urls.fileUploadUrl, formData, { onUploadProgress });
+    return api.post(urls.fileUploadUrl, formData, { onUploadProgress });
   } catch (error) {
     onError?.(error);
   }

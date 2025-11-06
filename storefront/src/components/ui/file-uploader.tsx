@@ -1,60 +1,75 @@
 "use client";
 
-import { buildApiPayload, initFileData, splitFilesIntoCategory } from "@/lib/utils";
-import { CrunchTypes, useCrunchItStore } from "@/store";
+import { buildApiPayload, buildWsPayload, initFileData, splitFilesIntoCategory } from "@/lib/utils";
+import { CrunchTypes, FileData, useCrunchItStore } from "@/store";
 import { useRef } from "react";
 import { uploadFiles } from "@/services";
 import { findMaxPercent } from "@/lib/utils";
 import { DragAndDrop } from "./drag-and-drop";
+import { type AxiosProgressEvent } from "axios";
+import { useWebSocket } from "@/hooks";
 
 export function FileUploaderUI() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { filesData, setFilesData, updateFileData } = useCrunchItStore((store) => store);
 
-  const onUploadStart = () => {
-    // Todo: Need improvement
-    const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
+  const { sendMessage } = useWebSocket();
 
-    fileKeysToUpload.forEach((key) => {
-      const fileData = { ...filesData[key] };
+  // Todo: Need improvement
+  const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
 
-      if (fileData.currentState !== "uploading") {
-        fileData.currentState = "uploading";
+  function onProgress(progressEvent: AxiosProgressEvent, fileData: FileData) {
+    if (!progressEvent.total) {
+      return fileData;
+    }
+
+    const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
+
+    if (loadedPercent === 100 && fileData.currentState !== "uploaded") {
+      fileData.currentState = "uploaded";
+    }
+
+    fileData.progressInfo.progress = loadedPercent;
+
+    return fileData;
+  }
+
+  async function uploadFile(key: string) {
+    const fileData = { ...filesData[key] };
+
+    if (fileData.currentState !== "uploading") {
+      fileData.currentState = "uploading";
+    }
+
+    updateFileData(key, fileData);
+
+    const payload = buildApiPayload(fileData);
+
+    const success = await uploadFiles(
+      payload,
+      (progressEvent) => updateFileData(key, onProgress(progressEvent, fileData)),
+      (error) => {
+        // error handing needs improvement;
+        fileData.currentState = "upload-failed";
+        updateFileData(key, fileData);
       }
+    );
 
-      updateFileData(key, fileData);
+    const jobId = success?.data.jobId;
+    fileData.currentState = "ready-to-crunch";
+    fileData.fileInfo.jobId = success?.data.jobId;
+    
+    updateFileData(key, fileData);
+  
+    const wsPayload = buildWsPayload("status", jobId);
 
-      const payload = buildApiPayload(fileData);
-
-      uploadFiles(
-        payload,
-        (progressEvent) => {
-          if (!progressEvent.total) {
-            return;
-          }
-
-          const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
-
-          if (loadedPercent === 100 && fileData.currentState !== "uploaded") {
-            fileData.currentState = "uploaded";
-          }
-
-          fileData.progressInfo.progress = loadedPercent;
-
-          updateFileData(key, fileData);
-        },
-        (error) => {
-          fileData.currentState = "upload-failed";
-          updateFileData(key, fileData);
-        }
-      );
-    });
-  };
+    sendMessage(wsPayload);
+  }
 
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
 
-    onUploadStart();
+    fileKeysToUpload.forEach(uploadFile);
 
     // const crunchItForm = evt.target as HTMLFormElement;
     // const compressionPercentage = crunchItForm.elements.namedItem("compression-selector") as HTMLSelectElement;

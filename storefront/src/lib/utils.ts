@@ -56,3 +56,8 @@ export function initFileData(file: File, type: CrunchTypes): FileData {
     }
   }
 }
+
+export function buildWsPayload(type: string, jobId: string) {
+  const payload = { type: "status", jobId };
+  return JSON.stringify(payload);
+}

@@ -7,15 +7,20 @@ type AllowedCompressionPercentages = 90 | 70 | 50 | 30;
 
 type AllowedFileStates = AllowedUploadStatuses | AllowedCrunchStatuses | AllowedDownloadStatuses;
 
+export enum CrunchTypes {
+  "compression",
+  "conversion",
+}
+
 type Compression = {
-  type: "compression";
+  type: CrunchTypes.compression;
   data: {
     percentage: AllowedCompressionPercentages;
   };
 };
 
 type Conversion = {
-  type: "conversion";
+  type: CrunchTypes.conversion;
   data: {
     originalFormat: string;
     targetFormat: string;
@@ -40,12 +45,12 @@ type DownloadProgress = {
 type CrunchOperation = Compression | Conversion;
 type ProgressInfo = UploadProgress | CrunchItProgress | DownloadProgress;
 
-type FileCrunchInfo = {
+export type FileCrunchInfo = {
   file: File;
   crunchOperation: CrunchOperation;
 };
 
-type FileData = { fileInfo: FileCrunchInfo; currentState: AllowedFileStates; progressInfo: ProgressInfo };
+export type FileData = { fileInfo: FileCrunchInfo; currentState: AllowedFileStates; progressInfo: ProgressInfo };
 
 type FilesData = {
   [key: string]: FileData;

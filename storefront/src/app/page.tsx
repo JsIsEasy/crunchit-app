@@ -1,60 +1,16 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useWebSocket } from "@/hooks";
 import { dbStatusToDisplay } from "@/lib/constant";
-import { findMaxPercent } from "@/lib/utils";
 import { useCrunchItStore } from "@/store";
-import { uploadFiles } from "@services";
 import { FileUploaderUI, Progress } from "@ui";
 import { FileText } from "lucide-react";
 
 export default function LandingPage() {
-  const { filesData, updateFileData } = useCrunchItStore((state) => state);
+  const { filesData } = useCrunchItStore((state) => state);
 
-  const onUploadStart = async () => {
-    // Todo: Need improvement
-    const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
-
-    fileKeysToUpload.forEach((key) => {
-      const fileData = { ...filesData[key] };
-
-      const operationInfo = JSON.stringify(fileData.fileInfo.crunchOperation);
-
-      const formData = new FormData();
-
-      formData.append("file", fileData.fileInfo.file);
-      formData.append("fileOperation", operationInfo); // Order is important
-
-      if (fileData.currentState !== "uploading") {
-        fileData.currentState = "uploading";
-      }
-
-      updateFileData(key, fileData);
-
-      uploadFiles(
-        formData,
-        (progressEvent) => {
-          if (!progressEvent.total) {
-            return;
-          }
-
-          const loadedPercent = findMaxPercent(progressEvent.loaded, progressEvent.total);
-
-          if (loadedPercent === 100 && fileData.currentState !== "uploaded") {
-            fileData.currentState = "uploaded";
-          }
-
-          fileData.progressInfo.progress = loadedPercent;
-
-          updateFileData(key, fileData);
-        },
-        (error) => {
-          fileData.currentState ='upload-failed';
-          updateFileData(key,fileData);
-        }
-      );
-    });
-  };
+  useWebSocket();
 
   return (
     <>
@@ -67,7 +23,7 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <FileUploaderUI onUploadStartAction={onUploadStart} />
+        <FileUploaderUI />
       </main>
 
       <section id="file-cards" className="mt-20 flex gap-10">

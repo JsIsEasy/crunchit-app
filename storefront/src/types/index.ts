@@ -1,1 +1,0 @@
-type uploadingStatus = "uploading..." | "uploaded";

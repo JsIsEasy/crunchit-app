@@ -2,6 +2,7 @@ import fastifyMysql, {
   type MySQLPromisePool
 } from "@fastify/mysql";
 import type { FastifyInstance } from "fastify";
+import fp from "fastify-plugin";
 
 // if you passed promise = true
 declare module "fastify" {

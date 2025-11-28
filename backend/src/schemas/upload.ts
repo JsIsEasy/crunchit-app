@@ -1,20 +1,37 @@
 import type { FastifySchema } from "fastify";
+import { Type } from "@fastify/type-provider-typebox";
 
-const uploadBody = {
-  type: "object",
-  properties: {
-    "compression-percentage": {
-      type: "string",
-    },
-    "files[]": {
-      type: "object",
-    },
-  },
+const Compression = Type.Object({
+  type: Type.String(),
+  data: Type.Object({
+    originalFormat: Type.String(),
+    targetFormat: Type.String(),
+  }),
+});
+
+const OperationInfo = Type.Union([Compression]);
+
+const uploadBody = Type.Object({
+  fileOperation: OperationInfo,
+  file: Type.Object({}),
+});
+
+const uploadResponses = {
+  201: Type.Object({
+    message: Type.String(),
+    jobId: Type.String(),
+  }),
+  400: Type.Object({
+    message: Type.String(),
+  }),
+  500: Type.Object({
+    message: Type.String(),
+  }),
 };
 
-const uploadResponses = {};
-
-export const uploadSchema: FastifySchema = {
+const uploadSchema: FastifySchema = {
   body: uploadBody,
   response: uploadResponses,
 };
+
+export default uploadSchema;

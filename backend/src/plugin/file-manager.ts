@@ -32,6 +32,14 @@ function createFileManager(fastify: FastifyInstance) {
       return fileName;
     },
 
+    async save(stream: NodeJS.ReadableStream) {
+      const dirPath = this.getDirPath;
+      const destPath = join(dirPath, "test.mp4");
+      this.ensureDir(dirPath);
+      console.log(destPath);
+      await pipeline(stream, fs.createWriteStream(destPath));
+    },
+
     async move(source: string, destination: string) {
       await fs.promises.rename(source, destination);
     },

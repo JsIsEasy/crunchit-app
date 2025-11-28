@@ -1,26 +1,5 @@
 import { createStore } from "zustand/vanilla";
-
-type AllowedUploadStatuses = "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
-type AllowedCrunchStatuses = "crunching" | "crunched" | "ready-to-download" | "crunch-failed";
-type AllowedDownloadStatuses = "downloading" | "downloaded" | "download-failed";
-type AllowedCompressionPercentages = 90 | 70 | 50 | 30;
-
-type AllowedFileStates = AllowedUploadStatuses | AllowedCrunchStatuses | AllowedDownloadStatuses;
-
-type Compression = {
-  type: "compression";
-  data: {
-    percentage: AllowedCompressionPercentages;
-  };
-};
-
-type Conversion = {
-  type: "conversion";
-  data: {
-    originalFormat: string;
-    targetFormat: string;
-  };
-};
+import { AllowedFileStates, Compression, Conversion } from "@crunchit/types";
 
 type UploadProgress = {
   type: "uploading";
@@ -40,12 +19,13 @@ type DownloadProgress = {
 type CrunchOperation = Compression | Conversion;
 type ProgressInfo = UploadProgress | CrunchItProgress | DownloadProgress;
 
-type FileCrunchInfo = {
+export type FileCrunchInfo = {
   file: File;
+  jobId?: string;
   crunchOperation: CrunchOperation;
 };
 
-type FileData = { fileInfo: FileCrunchInfo; currentState: AllowedFileStates; progressInfo: ProgressInfo };
+export type FileData = { fileInfo: FileCrunchInfo; currentState: AllowedFileStates; progressInfo: ProgressInfo };
 
 type FilesData = {
   [key: string]: FileData;

@@ -1,0 +1,20 @@
+{
+  "name": "@crunchit/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for CrunchIt monorepo",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "index.ts"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "dev": "pnpm run clean && tsc"
+  },
+  "keywords": ["types", "typescript", "crunchit"],
+  "author": "karannakra1@gmail.com",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0"
+}

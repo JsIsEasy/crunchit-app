@@ -14,6 +14,9 @@ function mySqlQueryManager(fastify: FastifyInstance) {
       const keys = ["job_id", "file_name", "s3_key", "operation_type", "operation_metadata"];
       return fastify.mysql.query(`INSERT INTO jobs (${keys.join(" , ")}) VALUES (${placeholders.join(" ,")});`, values);
     },
+    get(jobId: string) {
+      return fastify.mysql.query('Select * from jobs where job_id = ?', jobId);
+    }
   };
 }
 

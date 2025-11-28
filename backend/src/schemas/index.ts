@@ -1,1 +1,1 @@
-export * from "./upload";
+export { default as uploadSchema } from "./upload";

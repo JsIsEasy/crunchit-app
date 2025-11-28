@@ -1,14 +1,14 @@
 import type { WebSocket } from "@fastify/websocket";
-import type { FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
-function statusController(socket: WebSocket, req: FastifyRequest) {
+function statusController(this:FastifyInstance, socket: WebSocket, req: FastifyRequest) {
   console.log("WebSocket connection established");
   
   // Send initial connection message
   socket.send("Connected to status endpoint");
   
   socket.on("message", (message) => {
-    console.log("Received message:", message.toString());
+    const parsedMessage = JSON.parse(message.toString());
     socket.send("Hi from server");
   });
   

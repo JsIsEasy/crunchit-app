@@ -2,10 +2,7 @@ import ffmpeg from "@ffmpeg-installer/ffmpeg";
 import { spawn } from "child_process";
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import { pipeline } from "stream/promises";
 import type { DownloadStream } from "./aws-s3";
-import { Readable } from "stream";
-import { Blob } from "buffer";
 
 declare module "fastify" {
   export interface FastifyInstance {
@@ -29,24 +26,26 @@ function compress(fastify: FastifyInstance, stream: DownloadStream, operationInf
       "pipe:1",
     ]);
 
+    stream.pipe(process.stdin);
+
     process.stdin.on("error", (error) => {
       fastify.log.error("faced error on writing");
       reject(error);
     });
 
-    process.stdin.on('finish',fastify.log.info);
+    process.stdin.on("finish", fastify.log.info);
 
     process.stdout.on("error", (error) => {
       fastify.log.error("faced error on reading");
       reject(error);
     });
 
-    process.stdout.on("data", (data) => {
-      fastify.log.info(data);
-    });
+    process.stdout.on("data", fastify.log.info);
+
+    process.on("exit", fastify.log.info);
 
     fastify.fileManager
-      .save(stream)
+      .save(process.stdout)
       .then((d) => {
         resolve(d);
       })

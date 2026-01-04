@@ -1,14 +1,14 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Features } from "@/components/ui/features";
 import { useWebSocket } from "@/hooks";
-import { dbStatusToDisplay } from "@/lib/constant";
 import { useCrunchItStore } from "@/store";
-import { FileUploaderUI, Progress } from "@ui";
-import { FileText } from "lucide-react";
+import { FileUploaderUI } from "@ui";
+import Operations from "./operations/page";
+import { FileCrunchInfo } from "@/components/ui/file-crunch-info";
 
 export default function LandingPage() {
-  const { filesData } = useCrunchItStore((state) => state);
+  const { crunchOperationStart } = useCrunchItStore((state) => state);
 
   useWebSocket();
 
@@ -23,54 +23,13 @@ export default function LandingPage() {
           CrunchIt makes your files lighter, faster, and more flexible. Upload, crunch, and download—all in a few
           clicks.
         </p>
-        <FileUploaderUI />
+        {crunchOperationStart ? <FileUploaderUI /> : <Operations />}
       </main>
 
-      <section id="file-cards" className="mt-20 flex gap-10">
-        {Object.keys(filesData).map((fileId) => {
-          const fileData = filesData[fileId];
-          return (
-            <Card key={fileId}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div>
-                    <FileText size={40} />
-                  </div>
-                  <div>Annual Report 2024.pdf</div>
-                </CardTitle>
-                <CardDescription>{dbStatusToDisplay[fileData.currentState]}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="p-2 border rounded-2xl">
-                  <Progress value={fileData.progressInfo.progress} />
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </section>
-
+      {/* File crunching info */}
+      <FileCrunchInfo />
       {/* Features */}
-      <section id="features" className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-5xl w-full">
-        <div className="bg-emerald-500/10 p-6 rounded-2xl shadow-[0_0_10px_rgba(16,185,129,0.1)] border border-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] transition">
-          <h3 className="text-2xl font-bold mb-3 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.5)]">
-            Fast Compression
-          </h3>
-          <p className="text-gray-300">Shrink images, PDFs, and videos instantly without losing quality.</p>
-        </div>
-        <div className="bg-emerald-500/10 p-6 rounded-2xl shadow-[0_0_10px_rgba(16,185,129,0.1)] border border-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] transition">
-          <h3 className="text-2xl font-bold mb-3 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.5)]">
-            File Conversion
-          </h3>
-          <p className="text-gray-300">Convert files between popular formats like PNG ↔ JPG, PDF ↔ Word, MP4 ↔ MP3.</p>
-        </div>
-        <div className="bg-emerald-500/10 p-6 rounded-2xl shadow-[0_0_10px_rgba(16,185,129,0.1)] border border-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] transition">
-          <h3 className="text-2xl font-bold mb-3 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.5)]">
-            Secure & Private
-          </h3>
-          <p className="text-gray-300">Your files are deleted automatically after processing. No retention.</p>
-        </div>
-      </section>
+      <Features />
     </>
   );
 }

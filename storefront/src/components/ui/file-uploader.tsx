@@ -12,12 +12,9 @@ import { useWebSocket } from "@/hooks";
 
 export function FileUploaderUI() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { filesData, setFilesData, updateFileData } = useCrunchItStore((store) => store);
+  const { crunchOperationStart, filesData, setFilesData, updateFileData } = useCrunchItStore((store) => store);
 
   const { sendMessage } = useWebSocket();
-
-  // Todo: Need improvement
-  const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
 
   function onProgress(progressEvent: AxiosProgressEvent, fileData: FileData) {
     if (!progressEvent.total) {
@@ -59,9 +56,9 @@ export function FileUploaderUI() {
     const jobId = success?.data.jobId;
     fileData.currentState = "ready-to-crunch";
     fileData.fileInfo.jobId = success?.data.jobId;
-    
+
     updateFileData(key, fileData);
-  
+
     const wsPayload = buildWsPayload("status", jobId);
 
     sendMessage(wsPayload);
@@ -70,6 +67,8 @@ export function FileUploaderUI() {
   function onSubmit(evt: React.FormEvent) {
     evt.preventDefault();
 
+    const fileKeysToUpload = Object.keys(filesData).filter((key) => filesData[key].currentState === "ready-to-crunch");
+    
     fileKeysToUpload.forEach(uploadFile);
 
     // const crunchItForm = evt.target as HTMLFormElement;
@@ -87,7 +86,12 @@ export function FileUploaderUI() {
     }
 
     validFiles.forEach((file) => {
-      const fileData = initFileData(file, CrunchTypes.Compression);
+      if (!crunchOperationStart?.type) {
+        return;
+      }
+
+      const fileData = initFileData(file, crunchOperationStart.type, crunchOperationStart.meta);
+
       setFilesData(fileData);
     });
   }
@@ -116,25 +120,6 @@ export function FileUploaderUI() {
         onChange={prepareFileUpload}
         multiple={true}
       />
-
-      {/* Compression Selector */}
-      <div className="flex items-center gap-3">
-        <label htmlFor="compression-selector" className="text-white">
-          Compression:
-        </label>
-        <select
-          id="compression-selector"
-          name="compression"
-          className="bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400"
-        >
-          <option value="90" defaultChecked>
-            90% (Light)
-          </option>
-          <option value="70">70% (Balanced)</option>
-          <option value="50">50% (Strong)</option>
-          <option value="30">30% (Max Crunch)</option>
-        </select>
-      </div>
 
       {/* Compress Button */}
       <button

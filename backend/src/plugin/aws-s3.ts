@@ -17,9 +17,10 @@ async function download(fastify: FastifyInstance, s3Client: S3Client, s3Key: str
     Bucket: fastify.config.AWS_UPLOAD_BUCKET_NAME,
     Key: s3Key,
   });
+
   try {
     const response = await s3Client.send(getCommand);
-    return sdkStreamMixin(response.Body);
+    return { body: sdkStreamMixin(response.Body), meta: response.$metadata };
   } catch (error) {
     fastify.log.error(error);
     fastify.log.error("aws-s3: Failed to download file from s3.");
@@ -57,6 +58,9 @@ function aws(fastify: FastifyInstance, s3Client: S3Client) {
     },
     uploadFile: (file: MultipartFile) => {
       return upload(fastify, s3Client, file);
+    },
+    uploadFileStream: (stream: any) => {
+      return upload(fastify, s3Client);
     },
   };
 }

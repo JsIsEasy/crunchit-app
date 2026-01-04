@@ -39,7 +39,7 @@ export function buildApiPayload(fileData: FileData) {
   return formData;
 }
 
-export function initFileData(file: File, type: CrunchTypes): FileData {
+export function initFileData(file: File, type: CrunchTypes, data: any): FileData {
   switch (type) {
     case CrunchTypes.Compression: {
       return {
@@ -50,7 +50,7 @@ export function initFileData(file: File, type: CrunchTypes): FileData {
     }
     default: {
       return {
-        fileInfo: { file, crunchOperation: { type, data: { originalFormat: "mp4", targetFormat: "mp3" } } },
+        fileInfo: { file, crunchOperation: { type, data: { originalFormat: "jpeg", targetFormat: "png" } } },
         currentState: "ready-to-crunch",
         progressInfo: { progress: -10, type: "uploading" },
       };

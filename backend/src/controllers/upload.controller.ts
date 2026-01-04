@@ -1,4 +1,4 @@
-import { compressionWorker } from "@worker";
+import { compressionWorker,conversionWorker } from "@worker";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { v7 } from "uuid";
 
@@ -35,7 +35,13 @@ async function uploadFileController(this: FastifyInstance, request: FastifyReque
 
     if (!this.jobManager.getQueue) {
       const queueName = "queue" + Date.now();
-      this.jobManager.start(queueName, (job) => compressionWorker(this, job, fileS3Key));
+
+      if (parsedInfo.type == "conversion") {
+        this.jobManager.start(queueName, (job) => conversionWorker(this, job, fileS3Key));
+      } else {
+        this.jobManager.start(queueName, (job) => compressionWorker(this, job, fileS3Key));
+      }
+
       this.jobManager.addJobs(jobId, operationInfo);
     }
 

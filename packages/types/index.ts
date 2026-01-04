@@ -1,5 +1,5 @@
 // Upload statuses
-type AllowedUploadStatuses = "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
+type AllowedUploadStatuses = "ready-to-upload" | "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
 
 // Crunch statuses
 type AllowedCrunchStatuses = "crunching" | "crunched" | "ready-to-download" | "crunch-failed";
@@ -21,10 +21,15 @@ export enum CrunchTypes {
   Conversion = "conversion",
 }
 
+export type ConversionData = {
+  originalFormat: string;
+  targetFormat: string;
+}
+
 // Compression type
 export type Compression = {
   type: CrunchTypes.Compression;
-  data: {
+  data?: {
     percentage: AllowedCompressionPercentages;
   };
 };
@@ -32,10 +37,7 @@ export type Compression = {
 // Conversion type
 export type Conversion = {
   type: CrunchTypes.Conversion;
-  data: {
-    originalFormat: string;
-    targetFormat: string;
-  };
+  data?: ConversionData;
 };
 
 // Union of all crunch operations

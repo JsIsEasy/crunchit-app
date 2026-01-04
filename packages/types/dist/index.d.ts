@@ -1,4 +1,4 @@
-type AllowedUploadStatuses = "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
+type AllowedUploadStatuses = "ready-to-upload" | "ready-to-crunch" | "uploading" | "uploaded" | "upload-failed";
 type AllowedCrunchStatuses = "crunching" | "crunched" | "ready-to-download" | "crunch-failed";
 type AllowedDownloadStatuses = "downloading" | "downloaded" | "download-failed";
 export type uploadingStatus = "uploading..." | "uploaded";
@@ -8,18 +8,19 @@ export declare enum CrunchTypes {
     Compression = "compression",
     Conversion = "conversion"
 }
+export type ConversionData = {
+    originalFormat: string;
+    targetFormat: string;
+};
 export type Compression = {
     type: CrunchTypes.Compression;
-    data: {
+    data?: {
         percentage: AllowedCompressionPercentages;
     };
 };
 export type Conversion = {
     type: CrunchTypes.Conversion;
-    data: {
-        originalFormat: string;
-        targetFormat: string;
-    };
+    data?: ConversionData;
 };
 export type CrunchOperation = Compression | Conversion;
 export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;

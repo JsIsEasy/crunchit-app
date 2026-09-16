@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
 )
 
 var (
@@ -12,15 +13,16 @@ var (
 	ErrInvalidFileSize          = errors.New("Invalid max file size")
 	ErrInvalidMaxFiles          = errors.New("Invalid max files")
 	ErrInvalidWorkerConcurrency = errors.New("Invalid worker concurrency")
+	ErrIntParsingFailed         = errors.New("Failed to parse int value")
 )
 
 type Config struct {
-	DATABASE_URL       string
-	HTTP_ADDRESS       string
-	STORAGE_DIR        string
-	MAX_FILE_SIZE      string
-	MAX_FILES          string
-	WORKER_CONCURRENCY string
+	DatabaseUrl       string
+	HttpAddress       string
+	StorageDir        string
+	MaxFileSizeMB     string
+	MaxFiles          int
+	WorkerConcurrency int
 }
 
 func getEnvKey(key string, fallback string) (string, bool) {
@@ -37,7 +39,7 @@ func getEnvKey(key string, fallback string) (string, bool) {
 }
 
 func Load() (Config, error) {
-	dbUrl, exist := getEnvKey("DATABASE_URL", "empty-fallback")
+	dbUrl, exist := getEnvKey("DATABASE_URL", "test-url")
 
 	if !exist {
 		return Config{}, ErrInvalidDbURL
@@ -61,29 +63,63 @@ func Load() (Config, error) {
 		return Config{}, ErrInvalidFileSize
 	}
 
-	maxFiles, exist := getEnvKey("MAX_FILES", "5")
+	_maxFiles, exist := getEnvKey("MAX_FILES", "5")
 
 	if !exist {
 		return Config{}, ErrInvalidMaxFiles
 	}
 
-	workerConcurrency, exist := getEnvKey("WORKER_CONCURRENCY", "10")
+	maxFiles, err := strconv.Atoi(_maxFiles)
 
+	if err != nil {
+		return Config{}, ErrIntParsingFailed
+	}
+
+	_workerConcurrency, exist := getEnvKey("WORKER_CONCURRENCY", "10")
 	if !exist {
 		return Config{}, ErrInvalidWorkerConcurrency
 	}
 
+	workerConcurrency, err := strconv.Atoi(_workerConcurrency)
+	if err != nil {
+		return Config{}, ErrIntParsingFailed
+	}
+
 	return Config{
-		DATABASE_URL:       dbUrl,
-		HTTP_ADDRESS:       addr,
-		STORAGE_DIR:        storageDir,
-		MAX_FILE_SIZE:      maxFileSize,
-		MAX_FILES:          maxFiles,
-		WORKER_CONCURRENCY: workerConcurrency,
+		DatabaseUrl:       dbUrl,
+		HttpAddress:       addr,
+		StorageDir:        storageDir,
+		MaxFileSizeMB:     maxFileSize,
+		MaxFiles:          maxFiles,
+		WorkerConcurrency: workerConcurrency,
 	}, nil
 
 }
 
 func (c *Config) Validate() error {
+	if c.DatabaseUrl == "" {
+		return ErrInvalidDbURL
+	}
+
+	if c.HttpAddress == "" {
+		return ErrInvalidAddr
+	}
+
+	if c.MaxFiles == 0 {
+		return ErrInvalidMaxFiles
+	}
+
+	if c.StorageDir == "" {
+		return ErrInvalidStorage
+	}
+
+	if c.WorkerConcurrency == 0 {
+		return ErrInvalidWorkerConcurrency
+	}
+
+	if c.MaxFileSizeMB == "" || c.MaxFileSizeMB == "0" {
+		return ErrInvalidFileSize
+	}
+
 	return nil
 }

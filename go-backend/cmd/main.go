@@ -4,55 +4,85 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/crunchit/internal/app"
 	"github.com/crunchit/internal/config"
 )
 
 func main() {
-	var serverWg sync.WaitGroup
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+
 	defer stop()
 
 	cfg, err := config.Load()
-
 	if err != nil {
-		panic(fmt.Errorf("Failed to load config %w", err))
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	err = cfg.Validate()
-	if err != nil {
-		panic(fmt.Errorf("Config validation failed %w", err))
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("config validation failed: %w", err)
 	}
 
-	_app, err := app.New(cfg)
+	application, err := app.New(ctx, cfg)
 	if err != nil {
-		panic(fmt.Errorf("Failed to create new app %w", err))
+		return fmt.Errorf("failed to create app: %w", err)
 	}
+
+	defer application.Close()
+
+	serverErr := make(chan error, 1)
+	var serverWg sync.WaitGroup
 
 	serverWg.Go(func() {
-		fmt.Printf("Starting the server on port.... %s", cfg.HTTP_ADDRESS)
-		if err := _app.Server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			panic(fmt.Errorf("Failed to start server %w", err))
+		log.Printf("starting server on %s", cfg.HttpAddress)
+
+		if err := application.Server.ListenAndServe(); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("server start error: %w", err)
 		}
 	})
 
-	serverWg.Go(func() {
-		<-ctx.Done()
+	var runErr error
 
-		ctxWithTimeout, stop := context.WithTimeout(ctx, 5000)
-		defer stop()
+	select {
+	case runErr = <-serverErr:
+		log.Println("server stopped unexpectedly")
+	case <-ctx.Done():
+		log.Println("shutdown signal received")
+	}
 
-		fmt.Println("Shutting down the server...")
-		if err := _app.Server.Shutdown(ctxWithTimeout); err != nil {
-			panic(fmt.Errorf("Failed to shutdown server %w", err))
-		}
-	})
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		5*time.Second,
+	)
+
+	defer cancel()
+
+	log.Println("shutting down server...")
+
+	if err := application.Server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("failed to shut down server: %w", err)
+	}
 
 	serverWg.Wait()
+
+	return runErr
+
 }

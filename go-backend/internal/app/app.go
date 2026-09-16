@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/crunchit/internal/config"
@@ -8,17 +9,24 @@ import (
 )
 
 type App struct {
+	Config config.Config
 	Server *http.Server
 }
 
-func New(cfg config.Config) (*App, error) {
+func New(ctx context.Context, cfg config.Config) (*App, error) {
+
+	api := &httpapi.API{}
 
 	server := &http.Server{
-		Addr:    cfg.HTTP_ADDRESS,
-		Handler: httpapi.Routes(),
+		Addr:    cfg.HttpAddress,
+		Handler: api.Routes(),
 	}
 
 	return &App{
 		Server: server,
 	}, nil
+}
+
+func (app *App) Close() {
+
 }

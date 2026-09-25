@@ -1,6 +1,10 @@
 package jobs
 
-import "time"
+import (
+	"time"
+
+	"github.com/crunchit/internal/conversion"
+)
 
 type JobStatus string
 type Operation string
@@ -16,6 +20,8 @@ const (
 	JpgToPng Operation = "jpg-to-png"
 	PngToJpg Operation = "png-to-jpg"
 )
+
+type Converters map[Operation]conversion.Converter
 
 type Job struct {
 	ID               string

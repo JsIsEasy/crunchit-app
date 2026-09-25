@@ -2,18 +2,24 @@ package jobs
 
 import (
 	"context"
-	"image"
-	"image/jpeg"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/crunchit/internal/testutil"
 )
 
 type DummyTestStore struct {
 	JobDB map[string]Job
+	Err   error
 }
 
 func (s *DummyTestStore) CreateJob(ctx context.Context, job Job) error {
+	if s.Err != nil {
+		return s.Err
+	}
+
 	s.JobDB[job.ID] = job
 	return nil
 }
@@ -24,32 +30,13 @@ func (DummyTestConverter) Convert(ctx context.Context, inputPath string, outputP
 	return nil
 }
 
-func writeJPEGFixture(
-	t *testing.T,
-	path string,
-	width int,
-	height int,
-) {
-	t.Helper()
-
-	file, err := os.Create(path)
+func NewDummyStore(err error) *DummyTestStore {
 	if err != nil {
-		t.Fatalf("TestCreateJob: failed to create jpeg fixture: %v", err)
+		return &DummyTestStore{
+			JobDB: make(map[string]Job),
+			Err:   err}
 	}
 
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	if err := jpeg.Encode(file, img, nil); err != nil {
-		file.Close()
-		t.Fatalf("TestCreateJob: failed to encode jpeg fixture: %v", err)
-	}
-
-	if err := file.Close(); err != nil {
-		t.Fatalf("TestCreateJob: failed to close jpeg fixture: %v", err)
-	}
-}
-
-func NewDummyStore() *DummyTestStore {
 	return &DummyTestStore{
 		JobDB: make(map[string]Job)}
 }
@@ -58,22 +45,30 @@ func NewDummyConverter() DummyTestConverter {
 	return DummyTestConverter{}
 }
 
-func newTestService(t *testing.T) (*Service, *DummyTestStore) {
+func newTestService(t *testing.T, err error) (*Service, *DummyTestStore) {
 	t.Helper()
 
-	store := NewDummyStore()
+	store := NewDummyStore(err)
 	converter := NewDummyConverter()
 
 	return NewService(store, converter, t.TempDir()), store
 }
 
+type failingReader struct {
+	Err error
+}
+
+func (f *failingReader) Read([]byte) (int, error) {
+	return 0, f.Err
+}
+
 func TestCreateJob(t *testing.T) {
-	service, store := newTestService(t)
+	service, store := newTestService(t, nil)
 
 	fileName := "input.jpg"
 
 	inputPath := filepath.Join(t.TempDir(), fileName)
-	writeJPEGFixture(t, inputPath, 100, 100)
+	testutil.WriteJPEGFixture(t, inputPath, 100, 100)
 
 	file, err := os.Open(inputPath)
 	if err != nil {
@@ -113,4 +108,72 @@ func TestCreateJob(t *testing.T) {
 		t.Fatalf("expected filename %s, got %s", fileName, savedJob.OriginalFilename)
 	}
 
+}
+
+func TestCreateJob_StoreFailure(t *testing.T) {
+	expectedError := errors.New("database is unavailable")
+	service, _ := newTestService(t, expectedError)
+
+	dir := t.TempDir()
+
+	filePath := filepath.Join(dir, "input.jpg")
+
+	testutil.WriteJPEGFixture(t, filePath, 100, 100)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("failed to open input file: %v", err)
+	}
+	defer file.Close()
+
+	ctx := context.Background()
+
+	_, err = service.CreateJob(ctx, JpgToPng, "input.jpg", file)
+	if !errors.Is(err, expectedError) {
+		t.Fatalf("expected creation job error %v, got: %v", expectedError, err)
+	}
+}
+
+func TestCreateJob_ContextCancelled(t *testing.T) {
+	service, _ := newTestService(t, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	dir := t.TempDir()
+
+	filePath := filepath.Join(dir, "input.jpg")
+
+	testutil.WriteJPEGFixture(t, filePath, 100, 100)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("failed to open input file: %v", err)
+	}
+	defer file.Close()
+
+	_, err = service.CreateJob(ctx, JpgToPng, "input.jpg", file)
+	if err != nil {
+		t.Fatalf("expected to fail with cancelled context, got %v", err)
+	}
+}
+
+func TestCreateJob_InputReadFailure(t *testing.T) {
+	service, _ := newTestService(t, nil)
+
+	dir := t.TempDir()
+
+	filePath := filepath.Join(dir, "input.jpg")
+
+	testutil.WriteJPEGFixture(t, filePath, 100, 100)
+
+	uploadErr := errors.New("upload stream failed")
+
+	reader := &failingReader{
+		Err: uploadErr,
+	}
+	_, err := service.CreateJob(context.Background(), JpgToPng, "input.jpg", reader)
+	if err == nil {
+		t.Fatalf("expected to save file upload, got not error")
+	}
 }

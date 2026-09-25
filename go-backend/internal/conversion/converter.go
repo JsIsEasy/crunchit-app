@@ -14,6 +14,15 @@ type Converter interface {
 }
 
 type JPEGToPNGConverter struct{}
+type PNGToJPEGConverter struct{}
+
+func NewJpegToPngConverter() *JPEGToPNGConverter {
+	return &JPEGToPNGConverter{}
+}
+
+func NewPngToJpegConverter() *PNGToJPEGConverter {
+	return &PNGToJPEGConverter{}
+}
 
 func (JPEGToPNGConverter) Convert(ctx context.Context, inputPath string, outputPath string) error {
 	if err := ctx.Err(); err != nil {
@@ -46,5 +55,9 @@ func (JPEGToPNGConverter) Convert(ctx context.Context, inputPath string, outputP
 		return fmt.Errorf("failed to encode file: %w", err)
 	}
 
+	return nil
+}
+
+func (PNGToJPEGConverter) Convert(ctx context.Context, inputPath string, outputPath string) error {
 	return nil
 }

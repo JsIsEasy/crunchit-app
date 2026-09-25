@@ -7,20 +7,18 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/crunchit/internal/conversion"
 )
 
 type Service struct {
 	store      Store
-	converter  conversion.Converter
+	converters Converters
 	storageDir string
 }
 
-func NewService(store Store, converter conversion.Converter, storageDir string) *Service {
+func NewService(store Store, converters Converters, storageDir string) *Service {
 	return &Service{
 		store:      store,
-		converter:  converter,
+		converters: converters,
 		storageDir: storageDir}
 }
 
@@ -87,4 +85,11 @@ func (s *Service) CreateJob(
 	}
 
 	return job, nil
+}
+
+func (s *Service) GetJob(
+	ctx context.Context,
+	id string,
+) (Job, error) {
+	return Job{}, nil
 }

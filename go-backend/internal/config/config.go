@@ -20,7 +20,7 @@ type Config struct {
 	DatabaseUrl       string
 	HttpAddress       string
 	StorageDir        string
-	MaxFileSizeMB     string
+	MaxFileSizeMB     int
 	MaxFiles          int
 	WorkerConcurrency int
 }
@@ -40,37 +40,36 @@ func getEnvKey(key string, fallback string) (string, bool) {
 
 func Load() (Config, error) {
 	dbUrl, exist := getEnvKey("DATABASE_URL", "test-url")
-
 	if !exist {
 		return Config{}, ErrInvalidDbURL
 	}
 
 	addr, exist := getEnvKey("HTTP_ADDRESS", ":8080")
-
 	if !exist {
 		return Config{}, ErrInvalidAddr
 	}
 
 	storageDir, exist := getEnvKey("STORAGE_DIR", "download-")
-
 	if !exist {
 		return Config{}, ErrInvalidStorage
 	}
 
-	maxFileSize, exist := getEnvKey("MAX_FILE_SIZE", "10")
-
+	_maxFileSizeMB, exist := getEnvKey("MAX_FILE_SIZE_MB", "10")
 	if !exist {
 		return Config{}, ErrInvalidFileSize
 	}
 
-	_maxFiles, exist := getEnvKey("MAX_FILES", "5")
+	maxFileSize, err := strconv.Atoi(_maxFileSizeMB)
+	if err != nil {
+		return Config{}, ErrIntParsingFailed
+	}
 
+	_maxFiles, exist := getEnvKey("MAX_FILES", "5")
 	if !exist {
 		return Config{}, ErrInvalidMaxFiles
 	}
 
 	maxFiles, err := strconv.Atoi(_maxFiles)
-
 	if err != nil {
 		return Config{}, ErrIntParsingFailed
 	}
@@ -117,7 +116,7 @@ func (c *Config) Validate() error {
 		return ErrInvalidWorkerConcurrency
 	}
 
-	if c.MaxFileSizeMB == "" || c.MaxFileSizeMB == "0" {
+	if c.MaxFileSizeMB == 0 {
 		return ErrInvalidFileSize
 	}
 

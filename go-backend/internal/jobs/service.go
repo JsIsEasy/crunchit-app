@@ -32,7 +32,11 @@ func (s *Service) CreateJob(
 	ctx context.Context,
 	operation Operation,
 	originalFilename string,
-	input io.Reader) (Job, error) {
+	inputReader io.Reader) (Job, error) {
+
+	if err := ctx.Err(); err != nil {
+		return Job{}, err
+	}
 
 	jobId := fmt.Sprintf("job-%d", time.Now().UnixNano())
 	dirName := s.getFileDir(jobId)
@@ -72,7 +76,7 @@ func (s *Service) CreateJob(
 		UpdatedAt:        now,
 	}
 
-	if _, err = io.Copy(inputFile, input); err != nil {
+	if _, err = io.Copy(inputFile, inputReader); err != nil {
 		cleanup()
 		return Job{}, fmt.Errorf("failed to save input file, error: %w", err)
 	}

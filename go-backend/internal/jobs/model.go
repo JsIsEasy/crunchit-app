@@ -13,12 +13,12 @@ const (
 )
 
 const (
-	JpgToPng = "jpg-to-png"
-	PngToJpg = "png-to-jpg"
+	JpgToPng Operation = "jpg-to-png"
+	PngToJpg Operation = "png-to-jpg"
 )
 
 type Job struct {
-	Id               string
+	ID               string
 	Operation        Operation
 	OriginalFilename string
 	InputPath        string

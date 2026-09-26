@@ -24,9 +24,7 @@ func (s *DummyTestStore) CreateJob(ctx context.Context, job Job) error {
 	return nil
 }
 
-type DummyTestConverter struct{}
-
-func (DummyTestConverter) Convert(ctx context.Context, inputPath string, outputPath string) error {
+func (Converters) Convert(ctx context.Context, inputPath string, outputPath string) error {
 	return nil
 }
 
@@ -41,17 +39,17 @@ func NewDummyStore(err error) *DummyTestStore {
 		JobDB: make(map[string]Job)}
 }
 
-func NewDummyConverter() DummyTestConverter {
-	return DummyTestConverter{}
+func NewDummyConverter() Converters {
+	return Converters{}
 }
 
 func newTestService(t *testing.T, err error) (*Service, *DummyTestStore) {
 	t.Helper()
 
 	store := NewDummyStore(err)
-	converter := NewDummyConverter()
+	converters := NewDummyConverter()
 
-	return NewService(store, converter, t.TempDir()), store
+	return NewService(store, converters, t.TempDir()), store
 }
 
 type failingReader struct {

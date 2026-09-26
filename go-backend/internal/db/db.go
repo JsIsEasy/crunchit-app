@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +21,8 @@ func Open(ctx context.Context, dbUrl string) (*pgxpool.Pool, error) {
 		pool.Close()
 		return nil, err
 	}
+
+	log.Print("connected to db..")
 
 	return pool, nil
 }

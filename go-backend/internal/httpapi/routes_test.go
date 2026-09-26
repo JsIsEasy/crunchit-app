@@ -41,3 +41,17 @@ func TestHealthRoute(t *testing.T) {
 	}
 
 }
+
+func TestReadyRoute(t *testing.T) {
+	api := newTestAPI()
+	handler := api.Routes()
+
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	result := w.Result()
+	defer req.Body.Close()
+
+}

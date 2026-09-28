@@ -9,9 +9,9 @@ import (
 )
 
 type API struct {
-	JobService    JobService
-	DB            DBPinger
-	MaxFileSizeMB int
+	JobService       JobService
+	DB               DBPinger
+	MaxFileSizeBytes int64
 }
 
 type JobService interface {
@@ -35,11 +35,11 @@ type DBPinger interface {
 func NewAPI(
 	jobService JobService,
 	db DBPinger,
-	maxFileSizeMB int) *API {
+	maxFileSizeBytes int64) *API {
 	return &API{
-		JobService:    jobService,
-		DB:            db,
-		MaxFileSizeMB: maxFileSizeMB,
+		JobService:       jobService,
+		DB:               db,
+		MaxFileSizeBytes: maxFileSizeBytes,
 	}
 }
 
@@ -48,6 +48,7 @@ func (api *API) Routes() http.Handler {
 
 	mux.HandleFunc("GET /healthz", api.createHealthHandler)
 	mux.HandleFunc("GET /readyz", api.readyHandler)
+	mux.HandleFunc("POST /jobs", api.createJobHandler)
 
 	return mux
 }

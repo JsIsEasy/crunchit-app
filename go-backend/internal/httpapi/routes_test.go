@@ -1,18 +1,35 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func newTestAPI() *API {
-	return &API{}
+type DB struct{}
+
+func (DB) Ping(ctx context.Context) error {
+	if unavailable := ctx.Value("db-error"); unavailable != nil {
+		return errors.New("db is unavailable")
+	}
+
+	return nil
+}
+
+func newTestDB() DB {
+	return DB{}
+}
+
+func newTestAPI(db DB) *API {
+	return &API{DB: db}
 }
 
 func TestHealthRoute(t *testing.T) {
-	api := newTestAPI()
+	db := DB{}
+	api := newTestAPI(db)
 	handler := api.Routes()
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
@@ -24,7 +41,7 @@ func TestHealthRoute(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
 	var respBody struct {
@@ -36,8 +53,95 @@ func TestHealthRoute(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if respBody.Status != "Ok" {
-		t.Fatalf("expected status = 'Ok' got %s", respBody.Status)
+	if respBody.Status != StatusOk {
+		t.Fatalf("expected status = %s, got %s", StatusOk, respBody.Status)
 	}
 
+}
+
+func TestReadyRouteServiceAvailability(tt *testing.T) {
+	tests := []struct {
+		name          string
+		serviceStatus string
+		statusCode    int
+		reqHasError   bool
+		serviceName   string
+		appStatus     string
+	}{
+		{
+			name:          "DB status unavailable",
+			serviceStatus: Unavailable,
+			reqHasError:   true,
+			statusCode:    http.StatusServiceUnavailable,
+			serviceName:   "database",
+			appStatus:     StatusNotReady,
+		},
+		{
+			name:          "DB status is available",
+			serviceStatus: StatusOk,
+			reqHasError:   false,
+			statusCode:    http.StatusOK,
+			serviceName:   "database",
+			appStatus:     StatusReady,
+		},
+	}
+
+	db := newTestDB()
+	api := newTestAPI(db)
+
+	handler := api.Routes()
+
+	for _, _test := range tests {
+
+		tc := _test
+
+		tt.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+			defer req.Body.Close()
+
+			if tc.reqHasError {
+				newCtx := context.WithValue(req.Context(), "db-error", true)
+				req = req.WithContext(newCtx)
+			}
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			var respBody struct {
+				Status string         `json:"status"`
+				Checks map[string]any `json:"checks"`
+			}
+
+			if resp.StatusCode != tc.statusCode {
+				t.Fatalf("expected status code=%d, got %d", tc.statusCode, resp.StatusCode)
+			}
+
+			err := json.NewDecoder(resp.Body).Decode(&respBody)
+
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if respBody.Status != tc.appStatus {
+				t.Fatalf("expected service status=%s, got %s", tc.appStatus, respBody.Status)
+			}
+
+			switch tc.serviceName {
+
+			case "database":
+				dbStatus, exist := respBody.Checks["database"]
+				if !exist {
+					t.Fatalf("expected response body to have database status")
+				}
+
+				if dbStatus != tc.serviceStatus {
+					t.Fatalf("expected to receive db status=%s, got %s", tc.serviceStatus, dbStatus)
+				}
+			default:
+				t.Fatalf("unexpected service name")
+			}
+		})
+	}
 }

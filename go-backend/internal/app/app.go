@@ -31,7 +31,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 	service := jobs.NewService(store, converters, cfg.StorageDir)
 
-	api := httpapi.NewAPI(service, dbPool, cfg.MaxFileSizeMB)
+	api := httpapi.NewAPI(service, dbPool, cfg.MaxFileSizeBytes)
 
 	server := &http.Server{
 		Addr:    cfg.HttpAddress,

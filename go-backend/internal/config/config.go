@@ -7,20 +7,20 @@ import (
 )
 
 var (
-	ErrInvalidDbURL             = errors.New("Db url is invalid")
-	ErrInvalidAddr              = errors.New("Http address is invalid")
-	ErrInvalidStorage           = errors.New("Invalid storage directory")
-	ErrInvalidFileSize          = errors.New("Invalid max file size")
-	ErrInvalidMaxFiles          = errors.New("Invalid max files")
-	ErrInvalidWorkerConcurrency = errors.New("Invalid worker concurrency")
-	ErrIntParsingFailed         = errors.New("Failed to parse int value")
+	ErrInvalidDbURL             = errors.New("db url is invalid")
+	ErrInvalidAddr              = errors.New("http address is invalid")
+	ErrInvalidStorage           = errors.New("invalid storage directory")
+	ErrInvalidFileSize          = errors.New("invalid max file size")
+	ErrInvalidMaxFiles          = errors.New("invalid max files")
+	ErrInvalidWorkerConcurrency = errors.New("invalid worker concurrency")
+	ErrIntParsingFailed         = errors.New("failed to parse int value")
 )
 
 type Config struct {
 	DatabaseUrl       string
 	HttpAddress       string
 	StorageDir        string
-	MaxFileSizeMB     int
+	MaxFileSizeBytes  int64
 	MaxFiles          int
 	WorkerConcurrency int
 }
@@ -59,10 +59,12 @@ func Load() (Config, error) {
 		return Config{}, ErrInvalidFileSize
 	}
 
-	maxFileSize, err := strconv.Atoi(_maxFileSizeMB)
+	maxFileSize, err := strconv.ParseInt(_maxFileSizeMB, 10, 64)
 	if err != nil {
 		return Config{}, ErrIntParsingFailed
 	}
+
+	maxFileSizeBytes := maxFileSize * 1024 * 1024
 
 	_maxFiles, exist := getEnvKey("MAX_FILES", "5")
 	if !exist {
@@ -88,7 +90,7 @@ func Load() (Config, error) {
 		DatabaseUrl:       dbUrl,
 		HttpAddress:       addr,
 		StorageDir:        storageDir,
-		MaxFileSizeMB:     maxFileSize,
+		MaxFileSizeBytes:  maxFileSizeBytes,
 		MaxFiles:          maxFiles,
 		WorkerConcurrency: workerConcurrency,
 	}, nil
@@ -116,7 +118,7 @@ func (c *Config) Validate() error {
 		return ErrInvalidWorkerConcurrency
 	}
 
-	if c.MaxFileSizeMB == 0 {
+	if c.MaxFileSizeBytes == 0 {
 		return ErrInvalidFileSize
 	}
 

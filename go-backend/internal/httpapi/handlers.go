@@ -6,8 +6,15 @@ import (
 	"time"
 )
 
+const (
+	StatusNotReady string = "not_ready"
+	StatusReady    string = "ready"
+	StatusOk       string = "ok"
+	Unavailable    string = "unavailable"
+)
+
 func (api *API) createHealthHandler(w http.ResponseWriter, req *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"Status": "Ok"})
+	writeJSON(w, http.StatusOK, map[string]string{"Status": StatusOk})
 }
 
 func (api *API) readyHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,18 +23,18 @@ func (api *API) readyHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := api.DB.Ping(ctx); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-			"status": "not_ready",
+			"status": StatusNotReady,
 			"checks": map[string]string{
-				"database": "unavailable",
+				"database": Unavailable,
 			},
 		})
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status": "ready",
+		"status": StatusReady,
 		"checks": map[string]string{
-			"database": "ok",
+			"database": StatusOk,
 		},
 	})
 }

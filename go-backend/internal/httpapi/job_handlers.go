@@ -30,7 +30,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const multipartOverhead int64 = 1 << 20
+	const multipartOverhead = 1 << 20
 	requestLimit := api.MaxFileSizeBytes + multipartOverhead
 
 	// Limit the complete request body.

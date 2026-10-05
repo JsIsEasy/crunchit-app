@@ -9,27 +9,22 @@ import (
 	"testing"
 )
 
-type DB struct{}
+type StubDB struct{}
 
-func (DB) Ping(ctx context.Context) error {
+func (StubDB) Ping(ctx context.Context) error {
 	if unavailable := ctx.Value("db-error"); unavailable != nil {
 		return errors.New("db is unavailable")
 	}
-
 	return nil
 }
 
-func newTestDB() DB {
-	return DB{}
-}
-
-func newTestAPI(db DB) *API {
-	return &API{DB: db}
+func newStubDB() StubDB {
+	return StubDB{}
 }
 
 func TestHealthRoute(t *testing.T) {
-	db := DB{}
-	api := newTestAPI(db)
+	db := StubDB{}
+	api := &API{DB: db}
 	handler := api.Routes()
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
@@ -86,8 +81,8 @@ func TestReadyRouteServiceAvailability(tt *testing.T) {
 		},
 	}
 
-	db := newTestDB()
-	api := newTestAPI(db)
+	db := newStubDB()
+	api := &API{DB: db}
 
 	handler := api.Routes()
 

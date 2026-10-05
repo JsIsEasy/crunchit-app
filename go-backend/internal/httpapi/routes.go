@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/crunchit/internal/jobs"
@@ -11,6 +12,7 @@ import (
 type API struct {
 	JobService       JobService
 	DB               DBPinger
+	Logger           *slog.Logger
 	MaxFileSizeBytes int64
 }
 
@@ -35,10 +37,12 @@ type DBPinger interface {
 func NewAPI(
 	jobService JobService,
 	db DBPinger,
+	logger *slog.Logger,
 	maxFileSizeBytes int64) *API {
 	return &API{
 		JobService:       jobService,
 		DB:               db,
+		Logger:           logger,
 		MaxFileSizeBytes: maxFileSizeBytes,
 	}
 }

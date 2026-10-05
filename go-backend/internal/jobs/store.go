@@ -2,13 +2,9 @@ package jobs
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-)
-
-var (
-	ErrJobCreationFailed = errors.New("failed to create new job.")
 )
 
 type Store interface {
@@ -51,7 +47,7 @@ func (s *PostgresStore) CreateJob(ctx context.Context, job Job) error {
 		job.CreatedAt,
 		job.UpdatedAt)
 	if err != nil {
-		return ErrJobCreationFailed
+		return fmt.Errorf("insert job: %w", err)
 	}
 
 	return nil

@@ -10,6 +10,7 @@ import (
 	"github.com/crunchit/internal/db"
 	"github.com/crunchit/internal/httpapi"
 	"github.com/crunchit/internal/jobs"
+	"github.com/crunchit/internal/logging"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,9 +30,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	converters := jobs.Converters{
 		jobs.JpgToPng: conversion.JPEGToPNGConverter{},
 	}
-	service := jobs.NewService(store, converters, cfg.StorageDir)
 
-	api := httpapi.NewAPI(service, dbPool, cfg.MaxFileSizeBytes)
+	logger := logging.New()
+	service := jobs.NewService(store, converters, cfg.StorageDir)
+	api := httpapi.NewAPI(service, dbPool, logger, cfg.MaxFileSizeBytes)
 
 	server := &http.Server{
 		Addr:    cfg.HttpAddress,

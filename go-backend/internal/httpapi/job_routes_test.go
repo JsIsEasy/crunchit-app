@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -46,6 +48,12 @@ func newFakeService(storageDir string) JobService {
 	converters := make(map[jobs.Operation]conversion.Converter)
 
 	return jobs.NewService(store, converters, storageDir)
+}
+
+func newFakeLogger() *slog.Logger {
+	return slog.New(
+		slog.NewTextHandler(io.Discard, nil),
+	)
 }
 
 func TestCreateJobHandlerFailures(tt *testing.T) {
@@ -136,7 +144,8 @@ func TestCreateJobHandlerFailures(tt *testing.T) {
 
 		tt.Run(tc.testName, func(t *testing.T) {
 
-			api := NewAPI(service, db, tc.maxFileSizeBytes)
+			logger := newFakeLogger()
+			api := NewAPI(service, db, logger, tc.maxFileSizeBytes)
 
 			buf, formWriter, err := testutil.CreateMultipartForm(t, string(tc.operation), tc.fileKey, tc.fileName, tc.fileSize)
 
@@ -178,9 +187,11 @@ func TestCreateJobHandlerSuccess(t *testing.T) {
 	tempDir := t.TempDir()
 
 	service := newFakeService(tempDir)
+	logger := newFakeLogger()
+
 	db := newStubDB()
 
-	api := NewAPI(service, db, 10<<20)
+	api := NewAPI(service, db, logger, 10<<20)
 
 	buf, writer, err := testutil.CreateMultipartForm(t, string(jobs.JpgToPng), "file", "image.jpg", 1<<20)
 	if err != nil {

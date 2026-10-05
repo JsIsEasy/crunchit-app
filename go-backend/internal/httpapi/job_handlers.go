@@ -109,6 +109,10 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		fileHeader.Filename,
 		file)
 	if err != nil {
+		api.Logger.Error(
+			"create job failed",
+			"error", err,
+		)
 		writeError(
 			w,
 			http.StatusInternalServerError,

@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -33,34 +34,91 @@ func (s *Service) CreateJob(
 	inputReader io.Reader) (Job, error) {
 
 	if err := ctx.Err(); err != nil {
-		return Job{}, err
+		return Job{}, fmt.Errorf("create job: %w", err)
+	}
+
+	if inputReader == nil {
+		return Job{}, errors.New("create job: input reader is nil")
+	}
+
+	if _, exists := s.converters[operation]; !exists {
+		return Job{}, fmt.Errorf(
+			"create job: unsupported operation %q",
+			operation,
+		)
 	}
 
 	jobId := fmt.Sprintf("job-%d", time.Now().UnixNano())
 	dirName := s.getFileDir(jobId)
 
-	cleanup := func() {
-		_ = os.RemoveAll(dirName)
+	cleanup := func(cause error) error {
+		if cleanupErr := os.RemoveAll(dirName); cleanupErr != nil {
+			return errors.Join(
+				cause,
+				fmt.Errorf(
+					"cleanup job directory %q: %w",
+					dirName,
+					cleanupErr,
+				),
+			)
+		}
+		return cause
 	}
 
 	if err := os.MkdirAll(dirName, 0755); err != nil {
-		return Job{}, fmt.Errorf("failed to create job directory, error: %w", err)
+		return Job{}, cleanup(
+			fmt.Errorf(
+				"create job directory %q: %w",
+				dirName,
+				err,
+			))
 	}
 
 	inputPath := filepath.Join(dirName, "input.jpg")
 
-	inputFile, err := os.OpenFile(inputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	inputFile, err := os.OpenFile(
+		inputPath,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0600,
+	)
 	if err != nil {
-
-		removeDirErr := os.Remove(s.getFileDir(jobId))
-		if removeDirErr != nil {
-			return Job{}, fmt.Errorf("failed to create file: %s, error: %w \n failed to remove job directory, error: %w", jobId, removeDirErr, err)
-		}
-
-		return Job{}, fmt.Errorf("failed to create file: %s, error: %w", jobId, err)
+		return Job{}, cleanup(
+			fmt.Errorf(
+				"create input file %q: %w",
+				inputPath,
+				err,
+			),
+		)
 	}
 
-	defer inputFile.Close()
+	_, copyErr := io.Copy(inputFile, inputReader)
+
+	closeErr := inputFile.Close()
+
+	if copyErr != nil {
+		cause := fmt.Errorf(
+			"save uploaded file %q: %w",
+			originalFilename,
+			copyErr,
+		)
+
+		if closeErr != nil {
+			cause = errors.Join(
+				cause,
+				fmt.Errorf(
+					"close input file %q: %w",
+					inputPath,
+					closeErr,
+				),
+			)
+
+		}
+		return Job{}, cleanup(cause)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return Job{}, fmt.Errorf("create job: %w", err)
+	}
 
 	now := time.Now().UTC()
 	job := Job{
@@ -74,14 +132,14 @@ func (s *Service) CreateJob(
 		UpdatedAt:        now,
 	}
 
-	if _, err = io.Copy(inputFile, inputReader); err != nil {
-		cleanup()
-		return Job{}, fmt.Errorf("failed to save input file, error: %w", err)
-	}
-
 	if err = s.store.CreateJob(ctx, job); err != nil {
-		cleanup()
-		return Job{}, fmt.Errorf("failed to create job, error: %w", err)
+		return Job{}, cleanup(
+			fmt.Errorf(
+				"persist job %q: %w",
+				job.ID,
+				err,
+			),
+		)
 	}
 
 	return job, nil

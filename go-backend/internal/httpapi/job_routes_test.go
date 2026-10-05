@@ -39,15 +39,18 @@ func (s *fakeStore) CreateJob(ctx context.Context, job jobs.Job) error {
 }
 
 func newFakeService(storageDir string) JobService {
-	store := &fakeStore{}
+	store := &fakeStore{
+		jobs: make(map[string]jobs.Job),
+	}
 
 	converters := make(map[jobs.Operation]conversion.Converter)
 
 	return jobs.NewService(store, converters, storageDir)
 }
 
-func TestCreateJobHandlerMaxBytesFailure(tt *testing.T) {
-	service := newFakeService("test-downloads")
+func TestCreateJobHandlerFailures(tt *testing.T) {
+	tempDir := tt.TempDir()
+	service := newFakeService(tempDir)
 	db := newStubDB()
 
 	tests := []struct {
@@ -133,11 +136,7 @@ func TestCreateJobHandlerMaxBytesFailure(tt *testing.T) {
 
 		tt.Run(tc.testName, func(t *testing.T) {
 
-			api := &API{
-				JobService:       service,
-				DB:               db,
-				MaxFileSizeBytes: tc.maxFileSizeBytes,
-			}
+			api := NewAPI(service, db, tc.maxFileSizeBytes)
 
 			buf, formWriter, err := testutil.CreateMultipartForm(t, string(tc.operation), tc.fileKey, tc.fileName, tc.fileSize)
 
@@ -147,19 +146,20 @@ func TestCreateJobHandlerMaxBytesFailure(tt *testing.T) {
 			ctx := context.WithValue(req.Context(), "err-msg", "failed to create job")
 			req = req.WithContext(ctx)
 
-			resp := httptest.NewRecorder()
+			w := httptest.NewRecorder()
 			defer req.Body.Close()
 
-			api.Routes().ServeHTTP(resp, req)
+			api.Routes().ServeHTTP(w, req)
 
-			result := resp.Result()
+			resp := w.Result()
+			defer resp.Body.Close()
 
 			var errMessage struct {
 				Error string `json:"error"`
 			}
 
-			if result.StatusCode != tc.expectedStatusCode {
-				t.Fatalf("expected status=%d, got=%d", tc.expectedStatusCode, result.StatusCode)
+			if resp.StatusCode != tc.expectedStatusCode {
+				t.Fatalf("expected status=%d, got=%d", tc.expectedStatusCode, resp.StatusCode)
 			}
 
 			err = json.NewDecoder(resp.Body).Decode(&errMessage)
@@ -171,5 +171,59 @@ func TestCreateJobHandlerMaxBytesFailure(tt *testing.T) {
 				t.Fatalf("expected error mismatch")
 			}
 		})
+	}
+}
+
+func TestCreateJobHandlerSuccess(t *testing.T) {
+	tempDir := t.TempDir()
+
+	service := newFakeService(tempDir)
+	db := newStubDB()
+
+	api := NewAPI(service, db, 10<<20)
+
+	buf, writer, err := testutil.CreateMultipartForm(t, string(jobs.JpgToPng), "file", "image.jpg", 1<<20)
+	if err != nil {
+		t.Fatalf("multipart form creation failed, %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/jobs", buf)
+	req.Header.Set("Content-type", writer.FormDataContentType())
+	defer req.Body.Close()
+
+	w := httptest.NewRecorder()
+
+	api.Routes().ServeHTTP(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, resp.StatusCode)
+	}
+
+	job := CreateJobResponse{}
+
+	err = json.NewDecoder(resp.Body).Decode(&job)
+	if err != nil {
+		t.Fatalf("expected no err when parsing json, got %v", err)
+	}
+
+	if job.ID == "" {
+		t.Fatalf("expected job id to be populated")
+	}
+	if job.Operation != jobs.JpgToPng {
+		t.Fatalf("expected operation: %s, got: %s", jobs.JpgToPng, job.Operation)
+	}
+	if job.Status != jobs.StatusQueued {
+		t.Fatalf("expected status: %s, got: %s", jobs.StatusQueued, job.Status)
+	}
+	if job.OriginalFileName != "image.jpg" {
+		t.Fatalf("expected original file name: %s, got: %s", "image.jpg", job.OriginalFileName)
+	}
+	if job.UpdatedAt.IsZero() {
+		t.Fatalf("expected updated at to be non-zero, got %v", job.UpdatedAt)
+	}
+	if job.CreatedAt.IsZero() {
+		t.Fatalf("expected created at to be a non-zero, got %v", job.CreatedAt)
 	}
 }

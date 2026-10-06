@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/crunchit/internal/jobs"
+	"github.com/jackc/pgx/v5"
 )
 
 type CreateJobRequest struct {
@@ -14,7 +15,7 @@ type CreateJobRequest struct {
 	Operation string `json:"Operation"`
 }
 
-type CreateJobResponse struct {
+type CreateOrGetJobResponse struct {
 	ID               string         `json:"id"`
 	Operation        jobs.Operation `json:"operation"`
 	OriginalFileName string         `json:"original_filename"`
@@ -121,7 +122,51 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, CreateJobResponse{
+	writeJSON(w, http.StatusCreated, CreateOrGetJobResponse{
+		ID:               job.ID,
+		Operation:        job.Operation,
+		OriginalFileName: job.OriginalFilename,
+		Status:           job.Status,
+		Progress:         job.Progress,
+		CreatedAt:        job.CreatedAt,
+		UpdatedAt:        job.UpdatedAt,
+	})
+}
+
+func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
+	jobID := req.PathValue("ID")
+
+	if jobID == "" {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"invalid job ID")
+		return
+	}
+
+	job, err := api.JobService.GetJob(req.Context(), jobID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(
+			w,
+			http.StatusNotFound,
+			"no job found",
+		)
+		return
+	}
+	if err != nil {
+		api.Logger.Error(
+			"job retrieval failed",
+			"error:", err,
+		)
+		writeError(
+			w,
+			http.StatusInternalServerError,
+			"job retrieval failed",
+		)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, CreateOrGetJobResponse{
 		ID:               job.ID,
 		Operation:        job.Operation,
 		OriginalFileName: job.OriginalFilename,

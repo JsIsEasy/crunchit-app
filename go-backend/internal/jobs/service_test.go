@@ -7,15 +7,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/crunchit/internal/conversion"
 	"github.com/crunchit/internal/testutil"
 )
 
-type DummyTestStore struct {
+type FakeTestStore struct {
 	JobDB map[string]Job
 	Err   error
 }
 
-func (s *DummyTestStore) CreateJob(ctx context.Context, job Job) error {
+func (s *FakeTestStore) CreateJob(ctx context.Context, job Job) error {
 	if s.Err != nil {
 		return s.Err
 	}
@@ -24,30 +25,33 @@ func (s *DummyTestStore) CreateJob(ctx context.Context, job Job) error {
 	return nil
 }
 
-func (Converters) Convert(ctx context.Context, inputPath string, outputPath string) error {
-	return nil
+func (s *FakeTestStore) GetJob(ctx context.Context, jobID string) (Job, error) {
+	return Job{}, nil
 }
 
-func NewDummyStore(err error) *DummyTestStore {
+func newFakeStore(err error) *FakeTestStore {
 	if err != nil {
-		return &DummyTestStore{
+		return &FakeTestStore{
 			JobDB: make(map[string]Job),
 			Err:   err}
 	}
 
-	return &DummyTestStore{
+	return &FakeTestStore{
 		JobDB: make(map[string]Job)}
 }
 
-func NewDummyConverter() Converters {
-	return Converters{}
+func newFakeConverters() Converters {
+	converters := Converters{
+		JpgToPng: conversion.JPEGToPNGConverter{},
+	}
+	return converters
 }
 
-func newTestService(t *testing.T, err error) (*Service, *DummyTestStore) {
+func newTestService(t *testing.T, err error) (*Service, *FakeTestStore) {
 	t.Helper()
 
-	store := NewDummyStore(err)
-	converters := NewDummyConverter()
+	store := newFakeStore(err)
+	converters := newFakeConverters()
 
 	return NewService(store, converters, t.TempDir()), store
 }
@@ -94,7 +98,7 @@ func TestCreateJob(t *testing.T) {
 	}
 
 	if job.OriginalFilename != fileName {
-		t.Fatalf("expected Job.OriginalFilename=%s, got %s", fileName, job.OriginalFilename)
+		t.Fatalf("expected OriginalFilename=%s, got %s", fileName, job.OriginalFilename)
 	}
 
 	savedJob, exists := store.JobDB[job.ID]
@@ -108,7 +112,7 @@ func TestCreateJob(t *testing.T) {
 
 }
 
-func TestCreateJob_StoreFailure(t *testing.T) {
+func TestCreateJobStoreFailure(t *testing.T) {
 	expectedError := errors.New("database is unavailable")
 	service, _ := newTestService(t, expectedError)
 
@@ -128,11 +132,11 @@ func TestCreateJob_StoreFailure(t *testing.T) {
 
 	_, err = service.CreateJob(ctx, JpgToPng, "input.jpg", file)
 	if !errors.Is(err, expectedError) {
-		t.Fatalf("expected creation job error %v, got: %v", expectedError, err)
+		t.Fatalf("expected error %v, got: %v", expectedError, err)
 	}
 }
 
-func TestCreateJob_ContextCancelled(t *testing.T) {
+func TestCreateJobContextCancelled(t *testing.T) {
 	service, _ := newTestService(t, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -151,12 +155,12 @@ func TestCreateJob_ContextCancelled(t *testing.T) {
 	defer file.Close()
 
 	_, err = service.CreateJob(ctx, JpgToPng, "input.jpg", file)
-	if err != nil {
-		t.Fatalf("expected to fail with cancelled context, got %v", err)
+	if err == nil {
+		t.Fatalf("expected to fail with error, got no error")
 	}
 }
 
-func TestCreateJob_InputReadFailure(t *testing.T) {
+func TestCreateJobInputReadFailure(t *testing.T) {
 	service, _ := newTestService(t, nil)
 
 	dir := t.TempDir()

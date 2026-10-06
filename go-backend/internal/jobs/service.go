@@ -147,7 +147,16 @@ func (s *Service) CreateJob(
 
 func (s *Service) GetJob(
 	ctx context.Context,
-	id string,
+	jobID string,
 ) (Job, error) {
-	return Job{}, nil
+	if err := ctx.Err(); err != nil {
+		return Job{}, fmt.Errorf("retrieve job: %w", err)
+	}
+
+	job, err := s.store.GetJob(ctx, jobID)
+	if err != nil {
+		return Job{}, fmt.Errorf("retrieve job: %w", err)
+	}
+
+	return job, nil
 }

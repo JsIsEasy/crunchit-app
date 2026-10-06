@@ -99,7 +99,7 @@ func TestConvertNonJpegFormat(t *testing.T) {
 
 	converter := JPEGToPNGConverter{}
 	err = converter.Convert(context.Background(), inputPath, outputPath)
-	if err != nil {
+	if err == nil {
 		t.Fatalf("expected conversion to reject non-JPEG input")
 	}
 

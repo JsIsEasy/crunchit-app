@@ -9,6 +9,7 @@ import (
 
 type Store interface {
 	CreateJob(ctx context.Context, job Job) error
+	GetJob(ctx context.Context, JobID string) (Job, error)
 }
 
 type PostgresStore struct {
@@ -51,4 +52,40 @@ func (s *PostgresStore) CreateJob(ctx context.Context, job Job) error {
 	}
 
 	return nil
+}
+
+func (s *PostgresStore) GetJob(ctx context.Context, jobID string) (Job, error) {
+	query := `SELECT
+	          id,
+			  operation,
+			  original_filename,
+			  input_path,
+			  output_path,
+			  status,
+			  progress,
+			  error,
+			  created_at,
+			  updated_at FROM
+			  conversion_jobs
+			  WHERE id= $1;`
+
+	job := Job{}
+	row := s.db.QueryRow(ctx, query, jobID)
+
+	err := row.Scan(
+		&job.ID,
+		&job.Operation,
+		&job.OriginalFilename,
+		&job.InputPath,
+		&job.OutputPath,
+		&job.Status,
+		&job.Progress,
+		&job.Error,
+		&job.CreatedAt,
+		&job.UpdatedAt)
+	if err != nil {
+		return Job{}, fmt.Errorf("get job: %w", err)
+	}
+
+	return job, nil
 }

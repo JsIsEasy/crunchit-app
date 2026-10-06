@@ -3,7 +3,7 @@ services:
   api:
     build: ./go-backend
     env_file:
-      - .env
+      - go-backend/.env
     environment:
       DATABASE_URL: "postgres://app:app@pg:5432/crunchit?sslmode=disable"
       HTTP_ADDRESS: ":8080"

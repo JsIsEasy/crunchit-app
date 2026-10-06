@@ -53,6 +53,7 @@ func (api *API) Routes() http.Handler {
 	mux.HandleFunc("GET /healthz", api.createHealthHandler)
 	mux.HandleFunc("GET /readyz", api.readyHandler)
 	mux.HandleFunc("POST /jobs", api.createJobHandler)
+	mux.HandleFunc("GET /jobs/{ID}", api.getJobHandler)
 
 	return mux
 }

@@ -6,6 +6,7 @@
 .pnp.js
 /backend/node_modules
 /backend/dist
+/go-backend/downloads
 
 /downloads
 # testing

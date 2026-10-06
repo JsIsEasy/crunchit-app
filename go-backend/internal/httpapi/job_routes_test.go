@@ -40,12 +40,18 @@ func (s *fakeStore) CreateJob(ctx context.Context, job jobs.Job) error {
 	return nil
 }
 
+func (s *fakeStore) GetJob(ctx context.Context, jobID string) (jobs.Job, error) {
+	return jobs.Job{}, nil
+}
+
 func newFakeService(storageDir string) JobService {
 	store := &fakeStore{
 		jobs: make(map[string]jobs.Job),
 	}
 
-	converters := make(map[jobs.Operation]conversion.Converter)
+	converters := jobs.Converters{
+		jobs.JpgToPng: conversion.JPEGToPNGConverter{},
+	}
 
 	return jobs.NewService(store, converters, storageDir)
 }
@@ -212,7 +218,7 @@ func TestCreateJobHandlerSuccess(t *testing.T) {
 		t.Fatalf("expected status %d, got %d", http.StatusCreated, resp.StatusCode)
 	}
 
-	job := CreateJobResponse{}
+	job := CreateOrGetJobResponse{}
 
 	err = json.NewDecoder(resp.Body).Decode(&job)
 	if err != nil {

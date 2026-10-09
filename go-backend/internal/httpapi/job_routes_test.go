@@ -9,19 +9,25 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/crunchit/internal/conversion"
 	"github.com/crunchit/internal/jobs"
 	"github.com/crunchit/internal/testutil"
+	"github.com/jackc/pgx/v5"
 )
 
 type fakeStore struct {
-	mu   sync.Mutex
+	mu   sync.RWMutex
 	jobs map[string]jobs.Job
 }
+
+const (
+	ErrNoRowFound = "err-no-row-found"
+	ErrTxnClosed  = "err-txn-closed"
+)
 
 func (s *fakeStore) CreateJob(ctx context.Context, job jobs.Job) error {
 	if errMsg := ctx.Value("err-msg"); errMsg != nil {
@@ -32,16 +38,28 @@ func (s *fakeStore) CreateJob(ctx context.Context, job jobs.Job) error {
 		return errors.New(msg)
 	}
 
-	id := fmt.Sprintf("job-%d", time.Now().UnixNano())
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.jobs[id] = job
+	s.jobs[job.ID] = job
 	return nil
 }
 
 func (s *fakeStore) GetJob(ctx context.Context, jobID string) (jobs.Job, error) {
-	return jobs.Job{}, nil
+	if dbErr, ok := ctx.Value("db-error").(string); ok && dbErr != "" {
+		switch dbErr {
+		case ErrNoRowFound:
+			return jobs.Job{}, pgx.ErrNoRows
+		case ErrTxnClosed:
+			return jobs.Job{}, pgx.ErrTxClosed
+		default:
+			return jobs.Job{}, errors.New("unexpected error type")
+		}
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.jobs[jobID], nil
 }
 
 func newFakeService(storageDir string) JobService {
@@ -62,13 +80,20 @@ func newFakeLogger() *slog.Logger {
 	)
 }
 
-func TestCreateJobHandlerFailures(tt *testing.T) {
-	tempDir := tt.TempDir()
+func newFakeAPI(t *testing.T, maxFileSizeBytes int64) (*API, string) {
+	t.Helper()
+
+	tempDir := t.TempDir()
 	service := newFakeService(tempDir)
+	logger := newFakeLogger()
 	db := newStubDB()
+	return NewAPI(service, db, logger, maxFileSizeBytes), tempDir
+}
+
+func TestCreateJobHandlerFailures(tt *testing.T) {
 
 	tests := []struct {
-		testName           string
+		name               string
 		fileName           string
 		fileKey            string
 		fileSize           int
@@ -79,68 +104,68 @@ func TestCreateJobHandlerFailures(tt *testing.T) {
 		operation          jobs.Operation
 	}{
 		{
-			testName:           "payload size overload error",
+			name:               "payload size overload error",
 			fileName:           "image.jpg",
 			fileKey:            "file",
 			fileSize:           10 << 20,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusRequestEntityTooLarge,
-			expectedErrMsg:     "request body exceeds the allowed limit",
+			expectedErrMsg:     ErrLargeRequestEntity,
 			hasAttachedFiles:   true,
 		},
 		{
-			testName:           "file size overload error",
+			name:               "file size overload error",
 			fileName:           "image.jpg",
 			fileKey:            "file",
 			fileSize:           1<<20 + 500,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusRequestEntityTooLarge,
-			expectedErrMsg:     "uploaded file is too large",
+			expectedErrMsg:     ErrLargeUploadFile,
 			hasAttachedFiles:   true,
 			operation:          jobs.JpgToPng,
 		},
 		{
-			testName:           "file is missing error",
+			name:               "file is missing error",
 			fileName:           "image.jpg",
 			fileKey:            "not-a-file",
 			fileSize:           1 << 20,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedErrMsg:     "file is required",
+			expectedErrMsg:     ErrFileRequired,
 			hasAttachedFiles:   false,
 			operation:          jobs.JpgToPng,
 		},
 		{
-			testName:           "file operation is required error",
+			name:               "file operation is required error",
 			fileName:           "image.jpg",
 			fileKey:            "file",
 			fileSize:           1 << 20,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedErrMsg:     "operation is required",
+			expectedErrMsg:     ErrOperationRequired,
 			hasAttachedFiles:   true,
 			operation:          "",
 		},
 		{
-			testName:           "file operations not supported error",
+			name:               "file operations not supported error",
 			fileName:           "image.jpg",
 			fileKey:            "file",
 			fileSize:           1 << 20,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusBadRequest,
 			hasAttachedFiles:   true,
-			expectedErrMsg:     "operation is not supported",
+			expectedErrMsg:     ErrNotSupportedOperation,
 			operation:          "one-to-another",
 		},
 		{
-			testName:           "job creation failed",
+			name:               "job creation failed",
 			fileName:           "image.jpg",
 			fileKey:            "file",
 			fileSize:           1 << 20,
 			maxFileSizeBytes:   1 << 20,
 			expectedStatusCode: http.StatusInternalServerError,
 			hasAttachedFiles:   true,
-			expectedErrMsg:     "failed to create job",
+			expectedErrMsg:     ErrCreateJobFailed,
 			operation:          "jpg-to-png",
 		},
 	}
@@ -148,10 +173,9 @@ func TestCreateJobHandlerFailures(tt *testing.T) {
 	for _, _test := range tests {
 		tc := _test
 
-		tt.Run(tc.testName, func(t *testing.T) {
+		tt.Run(tc.name, func(t *testing.T) {
 
-			logger := newFakeLogger()
-			api := NewAPI(service, db, logger, tc.maxFileSizeBytes)
+			api, _ := newFakeAPI(t, tc.maxFileSizeBytes)
 
 			buf, formWriter, err := testutil.CreateMultipartForm(t, string(tc.operation), tc.fileKey, tc.fileName, tc.fileSize)
 
@@ -190,14 +214,7 @@ func TestCreateJobHandlerFailures(tt *testing.T) {
 }
 
 func TestCreateJobHandlerSuccess(t *testing.T) {
-	tempDir := t.TempDir()
-
-	service := newFakeService(tempDir)
-	logger := newFakeLogger()
-
-	db := newStubDB()
-
-	api := NewAPI(service, db, logger, 10<<20)
+	api, _ := newFakeAPI(t, 10<<20)
 
 	buf, writer, err := testutil.CreateMultipartForm(t, string(jobs.JpgToPng), "file", "image.jpg", 1<<20)
 	if err != nil {
@@ -242,5 +259,119 @@ func TestCreateJobHandlerSuccess(t *testing.T) {
 	}
 	if job.CreatedAt.IsZero() {
 		t.Fatalf("expected created at to be a non-zero, got %v", job.CreatedAt)
+	}
+}
+
+func TestGetJobRoutesFailure(tt *testing.T) {
+	api, _ := newFakeAPI(tt, 10<<20)
+
+	tests := []struct {
+		name       string
+		jobID      string
+		statusCode int
+		dbError    string
+		errMsg     string
+	}{
+		{
+			name:       "no job exist with job id",
+			jobID:      "test-job-id",
+			statusCode: http.StatusNotFound,
+			dbError:    ErrNoRowFound,
+			errMsg:     ErrNoJobFound,
+		},
+		{
+			name:       "txn is closed",
+			jobID:      "test-job-id",
+			statusCode: http.StatusInternalServerError,
+			dbError:    ErrTxnClosed,
+			errMsg:     ErrJobRetrievalFailed,
+		},
+	}
+
+	for _, _test := range tests {
+		tc := _test
+		tt.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+
+			ctx := context.Background()
+
+			req := httptest.NewRequest("GET", fmt.Sprintf("/jobs/%s", tc.jobID), nil)
+
+			if tc.dbError != "" {
+				ctx = context.WithValue(ctx, "db-error", tc.dbError)
+			}
+
+			api.Routes().ServeHTTP(w, req.WithContext(ctx))
+
+			resp := w.Result()
+
+			defer req.Body.Close()
+
+			var errorMsg struct {
+				Error string `json:"error"`
+			}
+
+			if resp.StatusCode != tc.statusCode {
+				t.Fatalf("expected status code = %d, got %d", tc.statusCode, resp.StatusCode)
+			}
+
+			json.NewDecoder(resp.Body).Decode(&errorMsg)
+
+			if errorMsg.Error != tc.errMsg {
+				t.Fatalf("expected err %v, got %v", ErrNoJobFound, errorMsg.Error)
+			}
+		})
+	}
+}
+
+func TestGetJobRouteSuccess(t *testing.T) {
+	api, storageDir := newFakeAPI(t, 10<<20)
+
+	ctx := context.Background()
+
+	filePath := filepath.Join(storageDir, "input.jpg")
+
+	reader, err := testutil.CreateNewFileReader(t, filePath)
+	if err != nil {
+		t.Fatalf("create new file reader: %v", err)
+	}
+
+	savedJob, err := api.JobService.CreateJob(ctx, jobs.JpgToPng, "input.jpg", reader)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	path := fmt.Sprintf("/jobs/%s", savedJob.ID)
+
+	req := httptest.NewRequest("GET", path, nil)
+	w := httptest.NewRecorder()
+
+	defer req.Body.Close()
+
+	api.Routes().ServeHTTP(w, req)
+
+	resp := w.Result()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	var job CreateOrGetJobResponse
+
+	err = json.NewDecoder(resp.Body).Decode(&job)
+	if err != nil {
+		t.Fatalf("json decode: %v", err)
+	}
+	if job.ID != savedJob.ID {
+		t.Fatalf("expected job ID %s, got %s", savedJob.ID, job.ID)
+	}
+	if job.Status != jobs.StatusQueued {
+		t.Fatalf("expected status %s, got %s", jobs.StatusQueued, job.Status)
+	}
+	if job.Operation != savedJob.Operation {
+		t.Fatalf("expected operation %s, got %s", savedJob.Operation, job.Operation)
+	}
+	if job.OriginalFileName != savedJob.OriginalFilename {
+		t.Fatalf("expected file name %s, got %s", savedJob.OriginalFilename, job.OriginalFileName)
 	}
 }

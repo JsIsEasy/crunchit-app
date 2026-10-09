@@ -9,6 +9,7 @@ import (
 
 	"github.com/crunchit/internal/conversion"
 	"github.com/crunchit/internal/testutil"
+	"github.com/jackc/pgx/v5"
 )
 
 type FakeTestStore struct {
@@ -26,7 +27,16 @@ func (s *FakeTestStore) CreateJob(ctx context.Context, job Job) error {
 }
 
 func (s *FakeTestStore) GetJob(ctx context.Context, jobID string) (Job, error) {
-	return Job{}, nil
+	if s.Err != nil {
+		return Job{}, s.Err
+	}
+
+	job, exists := s.JobDB[jobID]
+	if !exists {
+		return Job{}, pgx.ErrNoRows
+	}
+
+	return job, nil
 }
 
 func newFakeStore(err error) *FakeTestStore {
@@ -47,13 +57,13 @@ func newFakeConverters() Converters {
 	return converters
 }
 
-func newTestService(t *testing.T, err error) (*Service, *FakeTestStore) {
+func newFakeService(t *testing.T, err error) *Service {
 	t.Helper()
 
 	store := newFakeStore(err)
 	converters := newFakeConverters()
 
-	return NewService(store, converters, t.TempDir()), store
+	return NewService(store, converters, t.TempDir())
 }
 
 type failingReader struct {
@@ -65,7 +75,7 @@ func (f *failingReader) Read([]byte) (int, error) {
 }
 
 func TestCreateJob(t *testing.T) {
-	service, store := newTestService(t, nil)
+	service := newFakeService(t, nil)
 
 	fileName := "input.jpg"
 
@@ -101,11 +111,10 @@ func TestCreateJob(t *testing.T) {
 		t.Fatalf("expected OriginalFilename=%s, got %s", fileName, job.OriginalFilename)
 	}
 
-	savedJob, exists := store.JobDB[job.ID]
-	if !exists {
-		t.Fatalf("expected job to be saved in store")
+	savedJob, err := service.GetJob(ctx, job.ID)
+	if err != nil {
+		t.Fatalf("expected no err when trying to get saved job, got %v", err)
 	}
-
 	if savedJob.OriginalFilename != fileName {
 		t.Fatalf("expected filename %s, got %s", fileName, savedJob.OriginalFilename)
 	}
@@ -114,7 +123,7 @@ func TestCreateJob(t *testing.T) {
 
 func TestCreateJobStoreFailure(t *testing.T) {
 	expectedError := errors.New("database is unavailable")
-	service, _ := newTestService(t, expectedError)
+	service := newFakeService(t, expectedError)
 
 	dir := t.TempDir()
 
@@ -137,7 +146,7 @@ func TestCreateJobStoreFailure(t *testing.T) {
 }
 
 func TestCreateJobContextCancelled(t *testing.T) {
-	service, _ := newTestService(t, nil)
+	service := newFakeService(t, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -161,7 +170,7 @@ func TestCreateJobContextCancelled(t *testing.T) {
 }
 
 func TestCreateJobInputReadFailure(t *testing.T) {
-	service, _ := newTestService(t, nil)
+	service := newFakeService(t, nil)
 
 	dir := t.TempDir()
 
@@ -177,5 +186,60 @@ func TestCreateJobInputReadFailure(t *testing.T) {
 	_, err := service.CreateJob(context.Background(), JpgToPng, "input.jpg", reader)
 	if err == nil {
 		t.Fatalf("expected to save file upload, got not error")
+	}
+}
+
+func TestGetJobReturn404Error(t *testing.T) {
+	ctx := context.Background()
+
+	service := newFakeService(t, nil)
+
+	_, err := service.GetJob(ctx, "test-job-id")
+	if !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("expected err %v, got %v", pgx.ErrNoRows, err)
+	}
+}
+
+func TestGetJobReturnCtxCancelledErr(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	service := newFakeService(t, nil)
+
+	_, err := service.GetJob(ctx, "test-job-id")
+	if err == nil {
+		t.Fatalf("expected to fail with ctx err got no err")
+	}
+}
+
+func TestGetJobReturnsCreatedJob(t *testing.T) {
+	ctx := context.Background()
+
+	service := newFakeService(t, nil)
+
+	tempDir := t.TempDir()
+
+	fileName := "input.jpg"
+	filePath := filepath.Join(tempDir, fileName)
+
+	reader, err := testutil.CreateNewFileReader(t, filePath)
+	if err != nil {
+		t.Fatalf("expected no error when opening a file, got %v", err)
+	}
+
+	job, err := service.CreateJob(ctx, JpgToPng, fileName, reader)
+	if err != nil {
+		t.Fatalf("expected no error during job creation, got %v", err)
+	}
+	if job.Error != "" {
+		t.Fatalf("expected no error in saved job, got %s", job.Error)
+	}
+	if job.Status != StatusQueued {
+		t.Fatalf("expected job status=%s, got %s", StatusQueued, job.Status)
+	}
+
+	_, err = service.GetJob(ctx, job.ID)
+	if err != nil {
+		t.Fatalf("expected no error when job is fetched, got %v", err)
 	}
 }

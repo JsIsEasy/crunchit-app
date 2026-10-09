@@ -25,9 +25,26 @@ type CreateOrGetJobResponse struct {
 	UpdatedAt        time.Time      `json:"updated_at"`
 }
 
+const (
+	ErrMethodNotAllowed      = "method not allowed"
+	ErrLargeRequestEntity    = "request body exceeds the allowed limit"
+	ErrFileRequired          = "file is required"
+	ErrInvalidMultipartForm  = "invalid multipart form"
+	ErrLargeUploadFile       = "uploaded file is too large"
+	ErrOperationRequired     = "operation is required"
+	ErrNotSupportedOperation = "operation is not supported"
+	ErrCreateJobFailed       = "failed to create job"
+)
+
+const (
+	ErrInvalidJobID       = "invalid job ID"
+	ErrNoJobFound         = "no job found"
+	ErrJobRetrievalFailed = "job retrieval failed"
+)
+
 func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		writeError(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
 		return
 	}
 
@@ -49,7 +66,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(
 				w,
 				http.StatusRequestEntityTooLarge,
-				"request body exceeds the allowed limit",
+				ErrLargeRequestEntity,
 			)
 			return
 		}
@@ -58,7 +75,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 			writeError(
 				w,
 				http.StatusBadRequest,
-				"file is required",
+				ErrFileRequired,
 			)
 			return
 		}
@@ -66,7 +83,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(
 			w,
 			http.StatusBadRequest,
-			"invalid multipart form",
+			ErrInvalidMultipartForm,
 		)
 		return
 	}
@@ -77,7 +94,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(
 			w,
 			http.StatusRequestEntityTooLarge,
-			"uploaded file is too large",
+			ErrLargeUploadFile,
 		)
 		return
 	}
@@ -90,7 +107,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(
 			w,
 			http.StatusBadRequest,
-			"operation is required",
+			ErrOperationRequired,
 		)
 		return
 	}
@@ -99,7 +116,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(
 			w,
 			http.StatusBadRequest,
-			"operation is not supported",
+			ErrNotSupportedOperation,
 		)
 		return
 	}
@@ -117,7 +134,7 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(
 			w,
 			http.StatusInternalServerError,
-			"failed to create job",
+			ErrCreateJobFailed,
 		)
 		return
 	}
@@ -140,7 +157,7 @@ func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
 		writeError(
 			w,
 			http.StatusBadRequest,
-			"invalid job ID")
+			ErrInvalidJobID)
 		return
 	}
 
@@ -149,7 +166,7 @@ func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
 		writeError(
 			w,
 			http.StatusNotFound,
-			"no job found",
+			ErrNoJobFound,
 		)
 		return
 	}
@@ -161,7 +178,7 @@ func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
 		writeError(
 			w,
 			http.StatusInternalServerError,
-			"job retrieval failed",
+			ErrJobRetrievalFailed,
 		)
 		return
 	}

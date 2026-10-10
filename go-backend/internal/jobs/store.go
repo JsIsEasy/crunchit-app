@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Store interface {
 	CreateJob(ctx context.Context, job Job) error
-	GetJob(ctx context.Context, JobID string) (Job, error)
+	GetJob(ctx context.Context, jobID string) (Job, error)
+	UpdateJob(ctx context.Context, job Job) (Job, error)
 }
 
 type PostgresStore struct {
@@ -88,4 +90,48 @@ func (s *PostgresStore) GetJob(ctx context.Context, jobID string) (Job, error) {
 	}
 
 	return job, nil
+}
+
+func (s *PostgresStore) UpdateJob(ctx context.Context, job Job) (Job, error) {
+	const updateQuery = `
+		UPDATE conversion_jobs
+		SET status = $1,
+			progress = $2,
+			error = $3,
+			output_path = $4,
+			updated_at = now()
+		WHERE id = $5
+		RETURNING id, operation, original_filename, input_path,
+	    output_path, status, progress, error, created_at, updated_at`
+
+	updatedJob := Job{}
+	err := s.db.QueryRow(
+		ctx,
+		updateQuery,
+		job.Status,
+		job.Progress,
+		job.Error,
+		job.OutputPath,
+		job.ID,
+	).Scan(
+		&updatedJob.ID,
+		&updatedJob.Operation,
+		&updatedJob.OriginalFilename,
+		&updatedJob.InputPath,
+		&updatedJob.OutputPath,
+		&updatedJob.Status,
+		&updatedJob.Progress,
+		&updatedJob.Error,
+		&updatedJob.CreatedAt,
+		&updatedJob.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return Job{}, fmt.Errorf("update job: %w", pgx.ErrNoRows)
+		}
+
+		return Job{}, fmt.Errorf("update job: %w", err)
+	}
+
+	return updatedJob, nil
 }

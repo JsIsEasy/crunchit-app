@@ -2,7 +2,9 @@ package httpapi
 
 import (
 	"errors"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -37,9 +39,11 @@ const (
 )
 
 const (
-	ErrInvalidJobID       = "invalid job ID"
-	ErrNoJobFound         = "no job found"
-	ErrJobRetrievalFailed = "job retrieval failed"
+	ErrInvalidJobID        = "invalid job ID"
+	ErrNoJobFound          = "no job found"
+	ErrJobRetrievalFailed  = "job retrieval failed"
+	ErrJobNotReady         = "job not ready for download"
+	ErrUnavailableDownload = "download file is unavailable"
 )
 
 func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
@@ -150,8 +154,8 @@ func (api *API) createJobHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
-	jobID := req.PathValue("ID")
+func (api *API) getJobHandler(w http.ResponseWriter, r *http.Request) {
+	jobID := r.PathValue("ID")
 
 	if jobID == "" {
 		writeError(
@@ -161,7 +165,7 @@ func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	job, err := api.JobService.GetJob(req.Context(), jobID)
+	job, err := api.JobService.GetJob(r.Context(), jobID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(
 			w,
@@ -192,4 +196,78 @@ func (api *API) getJobHandler(w http.ResponseWriter, req *http.Request) {
 		CreatedAt:        job.CreatedAt,
 		UpdatedAt:        job.UpdatedAt,
 	})
+}
+
+func (api *API) downloadJobHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
+		return
+	}
+
+	jobID := r.PathValue("ID")
+	if jobID == "" {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			ErrInvalidJobID)
+		return
+	}
+
+	job, err := api.JobService.GetJob(r.Context(), jobID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(
+			w,
+			http.StatusNotFound,
+			ErrNoJobFound,
+		)
+		return
+	}
+	if err != nil {
+		api.Logger.Error(
+			"job retrieval failed",
+			"error:", err,
+		)
+		writeError(
+			w,
+			http.StatusInternalServerError,
+			ErrJobRetrievalFailed,
+		)
+		return
+	}
+
+	if job.Status != jobs.StatusReady {
+		writeError(
+			w,
+			http.StatusConflict,
+			ErrJobNotReady)
+		return
+	}
+
+	if job.OutputPath == "" {
+		api.Logger.Error(
+			"completed job has no output path",
+			"job_id", job.ID,
+		)
+
+		writeError(
+			w,
+			http.StatusInternalServerError,
+			ErrUnavailableDownload,
+		)
+	}
+
+	filename := filepath.Base(job.OriginalFilename)
+	if filename == "." || filename == string(filepath.Separator) {
+		filename = "download"
+	}
+
+	contentDisposition := mime.FormatMediaType(
+		"attachment",
+		map[string]string{
+			"filename": filename,
+		},
+	)
+
+	w.Header().Set("Content-Disposition", contentDisposition)
+	http.ServeFile(w, r, job.OutputPath)
 }

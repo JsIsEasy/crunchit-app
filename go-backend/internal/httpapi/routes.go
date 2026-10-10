@@ -28,6 +28,11 @@ type JobService interface {
 		ctx context.Context,
 		id string,
 	) (jobs.Job, error)
+
+	UpdateJob(
+		ctx context.Context,
+		job jobs.Job,
+	) (jobs.Job, error)
 }
 
 type DBPinger interface {
@@ -54,6 +59,7 @@ func (api *API) Routes() http.Handler {
 	mux.HandleFunc("GET /readyz", api.readyHandler)
 	mux.HandleFunc("POST /jobs", api.createJobHandler)
 	mux.HandleFunc("GET /jobs/{ID}", api.getJobHandler)
+	mux.HandleFunc("GET /jobs/{ID}/download", api.downloadJobHandler)
 
 	return mux
 }

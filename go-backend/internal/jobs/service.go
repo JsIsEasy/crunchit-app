@@ -160,3 +160,19 @@ func (s *Service) GetJob(
 
 	return job, nil
 }
+
+func (s *Service) UpdateJob(
+	ctx context.Context,
+	job Job,
+) (Job, error) {
+	if err := ctx.Err(); err != nil {
+		return Job{}, fmt.Errorf("update job: %w", err)
+	}
+
+	job, err := s.store.UpdateJob(ctx, job)
+	if err != nil {
+		return Job{}, err
+	}
+
+	return job, nil
+}

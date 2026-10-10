@@ -56,10 +56,16 @@ func (s *fakeStore) GetJob(ctx context.Context, jobID string) (jobs.Job, error) 
 		}
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	return s.jobs[jobID], nil
+}
+
+func (s *fakeStore) UpdateJob(ctx context.Context, job jobs.Job) (jobs.Job, error) {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.jobs[job.ID] = job
+	return s.jobs[job.ID], nil
 }
 
 func newFakeService(storageDir string) JobService {
@@ -374,4 +380,139 @@ func TestGetJobRouteSuccess(t *testing.T) {
 	if job.OriginalFileName != savedJob.OriginalFilename {
 		t.Fatalf("expected file name %s, got %s", savedJob.OriginalFilename, job.OriginalFileName)
 	}
+}
+
+func TestDownloadRoutesFailure(tt *testing.T) {
+	api, tempDir := newFakeAPI(tt, 10<<20)
+
+	filePath := filepath.Join(tempDir, "input.jpg")
+
+	reader, err := testutil.CreateNewFileReader(tt, filePath)
+	if err != nil {
+		tt.Fatalf("file reader: %v", err)
+	}
+
+	ctx := context.Background()
+
+	job, err := api.JobService.CreateJob(ctx, jobs.JpgToPng, "input.jpg", reader)
+	job.Status = jobs.JobStatus(jobs.StatusReady)
+
+	updatedJob, err := api.JobService.UpdateJob(ctx, job)
+	if err != nil {
+		tt.Fatalf("update job: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		jobID      string
+		statusCode int
+		dbError    string
+		errMsg     string
+	}{
+		{
+			name:       "no job exist",
+			jobID:      "test-job-id",
+			statusCode: http.StatusNotFound,
+			dbError:    ErrNoRowFound,
+			errMsg:     ErrNoJobFound,
+		},
+		{
+			name:       "job retrieval failed",
+			jobID:      "test-job-id",
+			statusCode: http.StatusInternalServerError,
+			dbError:    ErrTxnClosed,
+			errMsg:     ErrJobRetrievalFailed,
+		},
+		{
+			name:       "job status is not ready",
+			jobID:      "test-job-id",
+			statusCode: http.StatusConflict,
+			dbError:    "",
+			errMsg:     ErrJobNotReady,
+		},
+		{
+			name:       "job output path unavailable",
+			jobID:      updatedJob.ID,
+			statusCode: http.StatusInternalServerError,
+			dbError:    "",
+			errMsg:     ErrUnavailableDownload,
+		},
+	}
+
+	for _, _test := range tests {
+		tc := _test
+
+		tt.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+
+			ctx := context.Background()
+
+			req := httptest.NewRequest("GET", fmt.Sprintf("/jobs/%s/download", tc.jobID), nil)
+
+			if tc.dbError != "" {
+				ctx = context.WithValue(ctx, "db-error", tc.dbError)
+			}
+
+			api.Routes().ServeHTTP(w, req.WithContext(ctx))
+
+			resp := w.Result()
+
+			defer req.Body.Close()
+
+			var errorMsg struct {
+				Error string `json:"error"`
+			}
+
+			if resp.StatusCode != tc.statusCode {
+				t.Fatalf("expected status code = %d, got %d", tc.statusCode, resp.StatusCode)
+			}
+
+			json.NewDecoder(resp.Body).Decode(&errorMsg)
+
+			if errorMsg.Error != tc.errMsg {
+				t.Fatalf("expected err %v, got %v", ErrNoJobFound, errorMsg.Error)
+			}
+
+		})
+	}
+}
+
+func TestDownloadRoutesSuccess(t *testing.T) {
+	api, tempDir := newFakeAPI(t, 10<<20)
+
+	filePath := filepath.Join(tempDir, "input.jpg")
+	reader, err := testutil.CreateNewFileReader(t, filePath)
+	if err != nil {
+		t.Fatalf("file reader: %v", err)
+	}
+
+	ctx := context.Background()
+
+	job, err := api.JobService.CreateJob(ctx, jobs.JpgToPng, "input.jpg", reader)
+	if err != nil {
+		t.Fatalf("create job: %v", err)
+	}
+
+	job.Status = jobs.StatusReady
+	job.OutputPath = filepath.Join(filepath.Dir(job.InputPath), "output.png")
+
+	_, err = api.JobService.UpdateJob(ctx, job)
+	if err != nil {
+		t.Fatalf("update job: %v", err)
+	}
+
+	w := httptest.NewRecorder()
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("/jobs/%s/download", job.ID), nil)
+
+	api.Routes().ServeHTTP(w, req.WithContext(ctx))
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if got := resp.Header.Get("Content-Disposition"); got != "attachment; filename=input.jpg" {
+		t.Fatalf("expected attachment filename input.jpg, got %q", got)
+	}
+
+	defer req.Body.Close()
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/crunchit/internal/conversion"
@@ -13,6 +14,7 @@ import (
 )
 
 type FakeTestStore struct {
+	mu    sync.RWMutex
 	JobDB map[string]Job
 	Err   error
 }
@@ -21,6 +23,9 @@ func (s *FakeTestStore) CreateJob(ctx context.Context, job Job) error {
 	if s.Err != nil {
 		return s.Err
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.JobDB[job.ID] = job
 	return nil
@@ -37,6 +42,14 @@ func (s *FakeTestStore) GetJob(ctx context.Context, jobID string) (Job, error) {
 	}
 
 	return job, nil
+}
+
+func (s *FakeTestStore) UpdateJob(ctx context.Context, job Job) (Job, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.JobDB[job.ID] = job
+
+	return s.JobDB[job.ID], nil
 }
 
 func newFakeStore(err error) *FakeTestStore {

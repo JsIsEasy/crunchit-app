@@ -68,6 +68,10 @@ func (s *fakeStore) UpdateJob(ctx context.Context, job jobs.Job) (jobs.Job, erro
 	return s.jobs[job.ID], nil
 }
 
+func (s *fakeStore) ClaimNextQueuedJob(ctx context.Context) (jobs.Job, error) {
+	return jobs.Job{}, nil
+}
+
 func newFakeService(storageDir string) JobService {
 	store := &fakeStore{
 		jobs: make(map[string]jobs.Job),

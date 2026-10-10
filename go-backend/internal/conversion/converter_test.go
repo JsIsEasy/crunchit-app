@@ -24,6 +24,9 @@ func TestJpegToPngConvertor(t *testing.T) {
 		context.Background(),
 		inputPath,
 		outputPath,
+		func(progress int) error {
+			return nil
+		},
 	)
 	if err != nil {
 		t.Fatalf("expected conversion to succeed, got %v", err)
@@ -69,7 +72,9 @@ func TestConvertInvalidInput(t *testing.T) {
 	}
 
 	converter := JPEGToPNGConverter{}
-	err = converter.Convert(context.Background(), inputPath, outputPath)
+	err = converter.Convert(context.Background(), inputPath, outputPath, func(progress int) error {
+		return nil
+	})
 	if err == nil {
 		t.Fatal("expected conversion to fail for invalid input")
 	}
@@ -98,7 +103,9 @@ func TestConvertNonJpegFormat(t *testing.T) {
 	}
 
 	converter := JPEGToPNGConverter{}
-	err = converter.Convert(context.Background(), inputPath, outputPath)
+	err = converter.Convert(context.Background(), inputPath, outputPath, func(progress int) error {
+		return nil
+	})
 	if err == nil {
 		t.Fatalf("expected conversion to reject non-JPEG input")
 	}

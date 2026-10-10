@@ -52,6 +52,10 @@ func (s *FakeTestStore) UpdateJob(ctx context.Context, job Job) (Job, error) {
 	return s.JobDB[job.ID], nil
 }
 
+func (s *FakeTestStore) ClaimNextQueuedJob(ctx context.Context) (Job, error) {
+	return Job{}, nil
+}
+
 func newFakeStore(err error) *FakeTestStore {
 	if err != nil {
 		return &FakeTestStore{

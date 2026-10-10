@@ -176,3 +176,71 @@ func (s *Service) UpdateJob(
 
 	return job, nil
 }
+
+func (s *Service) ProcessJob(
+	ctx context.Context,
+	jobID string,
+) error {
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("process job: %w", err)
+	}
+
+	job, err := s.GetJob(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("process job: %w", err)
+	}
+
+	if job.Status != StatusQueued {
+		return fmt.Errorf("process job: unexpected status, expected %v, got %v", StatusQueued, job.Status)
+	}
+
+	job, err = s.store.ClaimNextQueuedJob(ctx)
+	if err != nil {
+		return fmt.Errorf("process job: %w", err)
+	}
+
+	outputPath := filepath.Join(s.storageDir, "output.jpg") // this needs to take dynamic mime type
+
+	converter := s.converters[job.Operation]
+
+	err = converter.Convert(ctx, job.InputPath, outputPath, func(progress int) error {
+		job.Progress = progress
+
+		if progress == 100 {
+			job.OutputPath = outputPath
+			job.Status = StatusReady
+
+			_, err := s.UpdateJob(ctx, job)
+			if err != nil {
+				return err
+			}
+		}
+
+		job.Status = StatusProcessing
+
+		_, err := s.UpdateJob(ctx, job)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		job.Error = err.Error()
+		job.Status = StatusFailed
+
+		_, updateErr := s.UpdateJob(ctx, job)
+
+		if updateErr != nil {
+			return errors.Join(
+				err,
+				fmt.Errorf("process job: %w", updateErr))
+		}
+
+		return fmt.Errorf("process job: %w", updateErr)
+	}
+
+	return nil
+
+}

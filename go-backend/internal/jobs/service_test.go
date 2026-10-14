@@ -53,7 +53,19 @@ func (s *FakeTestStore) UpdateJob(ctx context.Context, job Job) (Job, error) {
 }
 
 func (s *FakeTestStore) ClaimNextQueuedJob(ctx context.Context) (Job, error) {
-	return Job{}, nil
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for id, job := range s.JobDB {
+		if job.Status == StatusQueued {
+			job.Status = StatusProcessing
+			s.JobDB[id] = job
+
+			return job, nil
+		}
+	}
+
+	return Job{}, pgx.ErrNoRows
 }
 
 func newFakeStore(err error) *FakeTestStore {
@@ -67,9 +79,9 @@ func newFakeStore(err error) *FakeTestStore {
 		JobDB: make(map[string]Job)}
 }
 
-func newFakeConverters() Converters {
+func newConverters() Converters {
 	converters := Converters{
-		JpgToPng: conversion.JPEGToPNGConverter{},
+		JpgToPng: conversion.NewJpegToPngConverter(),
 	}
 	return converters
 }
@@ -78,7 +90,7 @@ func newFakeService(t *testing.T, err error) *Service {
 	t.Helper()
 
 	store := newFakeStore(err)
-	converters := newFakeConverters()
+	converters := newConverters()
 
 	return NewService(store, converters, t.TempDir())
 }
@@ -258,5 +270,84 @@ func TestGetJobReturnsCreatedJob(t *testing.T) {
 	_, err = service.GetJob(ctx, job.ID)
 	if err != nil {
 		t.Fatalf("expected no error when job is fetched, got %v", err)
+	}
+}
+
+func TestProcessJobNoRowsFailure(t *testing.T) {
+	service := newFakeService(t, nil)
+
+	err := service.ProcessJob(context.Background(), "test-job-ID")
+
+	if !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("error mismatch: expected %v, got %v", pgx.ErrNoRows, err)
+	}
+
+}
+
+func TestProcessJobStatusMismatchFailure(t *testing.T) {
+	ctx := context.Background()
+
+	service := newFakeService(t, nil)
+
+	filePath := filepath.Join(service.storageDir, "input.jpg")
+	reader, err := testutil.CreateNewFileReader(t, filePath)
+	if err != nil {
+		t.Fatalf("create file reader: %v", err)
+	}
+
+	job, err := service.CreateJob(ctx, JpgToPng, "input.jpg", reader)
+	if err != nil {
+		t.Fatalf("expected to create job successfully, got %v", err)
+	}
+	job.Status = StatusProcessing
+	_, err = service.UpdateJob(ctx, job)
+	if err != nil {
+		t.Fatalf("update job: %v", err)
+	}
+
+	err = service.ProcessJob(ctx, job.ID)
+	if !errors.Is(err, ErrJobStatusMismatch) {
+		t.Fatalf("expected error %v, got %v", ErrJobStatusMismatch, err)
+	}
+}
+
+func TestProcessJobSuccess(t *testing.T) {
+	ctx := context.Background()
+
+	service := newFakeService(t, nil)
+
+	filePath := filepath.Join(service.storageDir, "input.jpg")
+	reader, err := testutil.CreateNewFileReader(t, filePath)
+	if err != nil {
+		t.Fatalf("create file reader: %v", err)
+	}
+
+	job, err := service.CreateJob(ctx, JpgToPng, "input.jpg", reader)
+	if err != nil {
+		t.Fatalf("expected to create job successfully, got %v", err)
+	}
+
+	err = service.ProcessJob(ctx, job.ID)
+	if err != nil {
+		t.Fatalf("expected to process job successfully, got %v", err)
+	}
+
+	doneJob, err := service.GetJob(ctx, job.ID)
+	if doneJob.Status != StatusReady {
+		t.Fatalf("expected processed job status %v, got %v", StatusReady, doneJob.Status)
+	}
+	if doneJob.Error != "" {
+		t.Fatalf("expected processed job to have no err, got %s", doneJob.Error)
+	}
+	if doneJob.OutputPath == "" {
+		t.Fatalf("expected output path to be filled.")
+	}
+
+	file, err := os.Open(doneJob.OutputPath)
+	if err != nil {
+		t.Fatalf("expected to open generated png file successfully, got %v", err)
+	}
+	if filepath.Base(file.Name()) != "output.png" {
+		t.Fatalf("expected generate png file name %q, got %v", "output.png", file.Name())
 	}
 }

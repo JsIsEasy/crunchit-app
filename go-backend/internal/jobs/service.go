@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+var (
+	ErrJobStatusMismatch error = errors.New("unexpected job status")
+)
+
 type Service struct {
 	store      Store
 	converters Converters
@@ -186,13 +190,13 @@ func (s *Service) ProcessJob(
 		return fmt.Errorf("process job: %w", err)
 	}
 
-	job, err := s.GetJob(ctx, jobID)
+	job, err := s.store.GetJob(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("process job: %w", err)
 	}
 
 	if job.Status != StatusQueued {
-		return fmt.Errorf("process job: unexpected status, expected %v, got %v", StatusQueued, job.Status)
+		return fmt.Errorf("%w, expected %v, got %v", ErrJobStatusMismatch, StatusQueued, job.Status)
 	}
 
 	job, err = s.store.ClaimNextQueuedJob(ctx)
@@ -200,8 +204,8 @@ func (s *Service) ProcessJob(
 		return fmt.Errorf("process job: %w", err)
 	}
 
-	outputPath := filepath.Join(s.storageDir, "output.jpg") // this needs to take dynamic mime type
-
+	dirName := s.getFileDir(job.ID)
+	outputPath := filepath.Join(dirName, "output.png") // this needs to take dynamic mime type
 	converter := s.converters[job.Operation]
 
 	err = converter.Convert(ctx, job.InputPath, outputPath, func(progress int) error {
@@ -211,26 +215,21 @@ func (s *Service) ProcessJob(
 			job.OutputPath = outputPath
 			job.Status = StatusReady
 
-			_, err := s.UpdateJob(ctx, job)
-			if err != nil {
-				return err
-			}
+			_, err := s.store.UpdateJob(ctx, job)
+			return err
 		}
 
 		job.Status = StatusProcessing
 
-		_, err := s.UpdateJob(ctx, job)
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err := s.store.UpdateJob(ctx, job)
+		return err
 	})
 
 	if err != nil {
 		job.Error = err.Error()
 		job.Status = StatusFailed
 
-		_, updateErr := s.UpdateJob(ctx, job)
+		_, updateErr := s.store.UpdateJob(ctx, job)
 
 		if updateErr != nil {
 			return errors.Join(

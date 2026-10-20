@@ -1,5 +1,0 @@
-function uploadFileController (){
-
-}
-
-export {uploadFileController};

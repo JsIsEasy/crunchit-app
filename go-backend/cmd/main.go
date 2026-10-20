@@ -17,12 +17,6 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run() error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -33,12 +27,34 @@ func run() error {
 
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		log.Fatalf("failed to load config: %v", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("config validation failed: %w", err)
+		log.Fatalf("config validation failed: %v", err)
 	}
+
+	mode := "api"
+
+	if len(os.Args) > 1 {
+		mode = os.Args[1]
+	}
+
+	switch mode {
+	case "api":
+		if err := runAPI(ctx, cfg); err != nil {
+			log.Fatalf("api failed: %v", err)
+		}
+	case "worker":
+		if err := runWorker(ctx, cfg); err != nil {
+			log.Fatalf("worker failed: %v", err)
+		}
+	default:
+		log.Fatalf("unknown mode %q; expected api or worker", mode)
+	}
+}
+
+func runAPI(ctx context.Context, cfg config.Config) error {
 
 	application, err := app.New(ctx, cfg)
 	if err != nil {
@@ -84,5 +100,15 @@ func run() error {
 	serverWg.Wait()
 
 	return runErr
+}
 
+func runWorker(ctx context.Context, cfg config.Config) error {
+	workerApp, err := app.NewWorker(ctx, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create worker app: %w", err)
+	}
+
+	workerApp.Worker.Start(ctx)
+
+	return nil
 }

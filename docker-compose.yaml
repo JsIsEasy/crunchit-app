@@ -20,6 +20,22 @@ services:
       - crunchit-net
     restart: unless-stopped
 
+  worker:
+    build: ./go-backend
+    env_file:
+      - go-backend/.env
+    environment:
+      DATABASE_URL: "postgres://app:app@pg:5432/crunchit?sslmode=disable"
+      STORAGE_DIR: "/downloads"
+    command: ["./server","worker"]
+    depends_on:
+        pg:
+          condition: service_healthy
+    volumes:
+      - "./downloads:/downloads"
+    networks:
+      - crunchit-net
+
   pg:
     image: postgres:16-alpine
     environment:
@@ -56,6 +72,14 @@ services:
         "postgres://app:app@pg:5432/crunchit?sslmode=disable",
         "up"
       ]
+    networks:
+      - crunchit-net
+  adminer:
+    profiles:
+      - tools
+    image: adminer:latest
+    ports:
+      - "8081:8080"
     networks:
       - crunchit-net
 volumes:

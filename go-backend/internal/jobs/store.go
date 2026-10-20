@@ -153,14 +153,14 @@ func (s *PostgresStore) ClaimNextQueuedJob(ctx context.Context) (Job, error) {
 			  Select
 			  	id,
 				operation,
-				original_file_name,
+				original_filename,
 				input_path,
 				output_path,
 				status,
 				progress,
 				error,
 				created_at,
-				updated_at,
+				updated_at
 			  FROM conversion_jobs
 			  WHERE status = $1
 			  ORDER BY created_at ASC

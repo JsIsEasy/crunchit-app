@@ -183,24 +183,9 @@ func (s *Service) UpdateJob(
 
 func (s *Service) ProcessJob(
 	ctx context.Context,
-	jobID string,
+	job Job,
 ) error {
-
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("process job: %w", err)
-	}
-
-	job, err := s.store.GetJob(ctx, jobID)
-	if err != nil {
-		return fmt.Errorf("process job: %w", err)
-	}
-
-	if job.Status != StatusQueued {
-		return fmt.Errorf("%w, expected %v, got %v", ErrJobStatusMismatch, StatusQueued, job.Status)
-	}
-
-	job, err = s.store.ClaimNextQueuedJob(ctx)
-	if err != nil {
 		return fmt.Errorf("process job: %w", err)
 	}
 
@@ -208,7 +193,7 @@ func (s *Service) ProcessJob(
 	outputPath := filepath.Join(dirName, "output.png") // this needs to take dynamic mime type
 	converter := s.converters[job.Operation]
 
-	err = converter.Convert(ctx, job.InputPath, outputPath, func(progress int) error {
+	err := converter.Convert(ctx, job.InputPath, outputPath, func(progress int) error {
 		job.Progress = progress
 
 		if progress == 100 {

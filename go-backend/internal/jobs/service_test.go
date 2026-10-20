@@ -276,7 +276,7 @@ func TestGetJobReturnsCreatedJob(t *testing.T) {
 func TestProcessJobNoRowsFailure(t *testing.T) {
 	service := newFakeService(t, nil)
 
-	err := service.ProcessJob(context.Background(), "test-job-ID")
+	err := service.ProcessJob(context.Background(), Job{})
 
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("error mismatch: expected %v, got %v", pgx.ErrNoRows, err)
@@ -305,7 +305,7 @@ func TestProcessJobStatusMismatchFailure(t *testing.T) {
 		t.Fatalf("update job: %v", err)
 	}
 
-	err = service.ProcessJob(ctx, job.ID)
+	err = service.ProcessJob(ctx, job)
 	if !errors.Is(err, ErrJobStatusMismatch) {
 		t.Fatalf("expected error %v, got %v", ErrJobStatusMismatch, err)
 	}
@@ -327,7 +327,7 @@ func TestProcessJobSuccess(t *testing.T) {
 		t.Fatalf("expected to create job successfully, got %v", err)
 	}
 
-	err = service.ProcessJob(ctx, job.ID)
+	err = service.ProcessJob(ctx, job)
 	if err != nil {
 		t.Fatalf("expected to process job successfully, got %v", err)
 	}

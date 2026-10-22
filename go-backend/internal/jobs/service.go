@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/crunchit/internal/utils"
 )
 
 var (
@@ -77,8 +79,8 @@ func (s *Service) CreateJob(
 				err,
 			))
 	}
-
-	inputPath := filepath.Join(dirName, "input.jpg")
+	inputFileName, err := utils.BuildInputFileName(jobId, originalFilename)
+	inputPath := filepath.Join(dirName, inputFileName)
 
 	inputFile, err := os.OpenFile(
 		inputPath,

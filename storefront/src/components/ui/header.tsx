@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Bolt } from "lucide-react";
 import React from "react";
+import { Logo } from "./logo";
 
 export function Header() {
   return (
@@ -8,12 +8,10 @@ export function Header() {
       <div className="mx-auto flex h-[65px] w-full max-w-[1200px] items-center justify-between px-5 sm:h-[85px] sm:px-8">
         <Link
           href="/"
-          className="font-display flex items-center gap-2.5 text-[22px] font-bold tracking-[-.05em] text-[#edf6f5] sm:text-[25px]"
+          aria-label="CrunchIt home"
+          className="inline-flex items-center"
         >
-          <span className="grid h-9 w-[34px] rotate-[-5deg] place-items-center rounded-[10px] border border-[#4af0b5]/20 bg-[#4af0b5]/[.07] text-[#4af0b5]">
-            <Bolt className="h-6 w-[21px]" aria-hidden="true" />
-          </span>
-          CrunchIt<span className="text-[#4af0b5]">.</span>
+          <Logo />
         </Link>
         <nav
           aria-label="Main navigation"

@@ -1,0 +1,33 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #edf6f5;
+  white-space: nowrap;
+}
+
+.mark {
+  display: block;
+  width: 38px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -1.1px;
+  line-height: 1;
+}
+
+@media (max-width: 590px) {
+  .mark {
+    width: 34px;
+    height: 32px;
+  }
+
+  .wordmark {
+    font-size: 24px;
+  }
+}

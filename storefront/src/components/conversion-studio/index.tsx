@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Queue } from "./file-queue";
 import { Hero, HowItWorks } from "./studio-intro";
 import { ToolSidebar } from "./tool-sidebar";
+import type { ConversionMode } from "./types";
 import { useConversionQueue } from "./use-conversion-queue";
 import { Actions, UploadZone, WorkspaceHeader } from "./workspace";
 
@@ -14,19 +15,27 @@ function getActionLabel(processing: boolean, queued: number, ready: number) {
   return "Crunch files";
 }
 
-export function ConversionStudio() {
-  const queue = useConversionQueue();
+type ConversionStudioProps = {
+  mode?: ConversionMode;
+  children?: React.ReactNode;
+};
+
+export function ConversionStudio({ mode, children }: ConversionStudioProps) {
+  const queue = useConversionQueue(mode);
   const [isDragging, setIsDragging] = useState(false);
+  const studioLayout = mode ? "" : "md:grid md:grid-cols-[235px_1fr]";
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
-      <Hero />
+      {children ?? <Hero />}
 
       <section
-        className="overflow-hidden rounded-[18px] border border-white/10 bg-[#0b151b]/95 shadow-[0_30px_100px_rgba(0,0,0,.2)] md:grid md:grid-cols-[235px_1fr]"
+        className={`overflow-hidden rounded-[18px] border border-white/10 bg-[#0b151b]/95 shadow-[0_30px_100px_rgba(0,0,0,.2)] ${studioLayout}`}
         aria-label="File conversion studio"
       >
-        <ToolSidebar mode={queue.mode} isProcessing={queue.isProcessing} onChange={queue.switchTool} />
+        {!mode && (
+          <ToolSidebar mode={queue.mode} isProcessing={queue.isProcessing} onChange={queue.switchTool} />
+        )}
 
         <section className="min-w-0 p-5 sm:p-7 sm:px-[30px]">
           <WorkspaceHeader tool={queue.tool} />

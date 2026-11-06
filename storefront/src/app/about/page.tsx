@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title:"About",
-  description:"About page of crunch it app."
-}
+  title: "About",
+  description: "Learn why CrunchIt was built and how its browser-based image tools work.",
+  alternates: { canonical: "/about" },
+};
 
 function AboutPage() {
   return (
@@ -21,11 +22,11 @@ function AboutPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold flex items-center justify-center gap-2 text-hover-green">
-            Hi there <span className="wave">👋</span>
+            About CrunchIt
           </h1>
           <p className="mt-2">
-            I’m building this platform to make file compression and conversion **fast, simple, and private**. No ads, no
-            clutter — just a tool that works for you.
+            I’m building CrunchIt to make everyday file tasks simpler. The first tools convert images between JPG and
+            PNG directly in your browser.
           </p>
         </div>
       </section>
@@ -34,9 +35,8 @@ function AboutPage() {
       <section className="text-center space-y-4">
         <h2 className="text-2xl font-semibold">Why this project?</h2>
         <p>
-          Sharing large files is painful. Cloud services are slow, apps are bloated, and privacy is questionable. I
-          wanted a tool that just
-          <span className="font-medium"> compresses files quickly and securely</span>.
+          Sometimes you need a different image format to upload a photo, open it in an editor, or share it with
+          someone. CrunchIt gives you one workspace to add a batch of images and download the converted files.
         </p>
       </section>
 
@@ -44,15 +44,15 @@ function AboutPage() {
       <section className="grid md:grid-cols-3 gap-6 text-center">
         <div className="p-6 border rounded-xl shadow-sm hover:shadow-md transition">
           <h3 className="font-semibold text-lg">⚡ Fast</h3>
-          <p className="text-sm mt-2">Optimized for speed so you can compress files in seconds.</p>
+          <p className="text-sm mt-2">Convert up to 10 images in a batch.</p>
         </div>
         <div className="p-6 border rounded-xl shadow-sm hover:shadow-md transition">
           <h3 className="font-semibold text-lg">🔒 Private</h3>
-          <p className="text-sm  mt-2">Files are processed securely and never stored permanently.</p>
+          <p className="text-sm mt-2">The current converters process your images on your device.</p>
         </div>
         <div className="p-6 border rounded-xl shadow-sm hover:shadow-md transition">
           <h3 className="font-semibold text-lg">🎯 Simple</h3>
-          <p className="text-sm  mt-2">No signup, no fluff. Upload → compress → download.</p>
+          <p className="text-sm mt-2">Choose a format, add your images, and download the results.</p>
         </div>
       </section>
 
@@ -60,8 +60,8 @@ function AboutPage() {
       <section className="text-center space-y-4">
         <h2 className="text-2xl font-semibold">What’s Next?</h2>
         <p>
-          Today we compress videos and images. Tomorrow, we’ll support conversions across formats — making file handling
-          effortless.
+          Image compression and more file formats are future additions. Today, CrunchIt supports JPG to PNG and PNG
+          to JPG conversion.
         </p>
       </section>
     </div>

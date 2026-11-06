@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-      branches:
-        - main
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -35,4 +36,47 @@ jobs:
 
       - name: Build project
         run: pnpm build
+
+  deploy-preview:
+    name: Deploy Vercel preview
+    if: github.event_name == 'workflow_dispatch' && github.ref_type == 'branch'
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    environment:
+      name: Preview
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@65.12.1
+
+      - name: Deploy preview
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ -z "$VERCEL_TOKEN" || -z "$VERCEL_ORG_ID" || -z "$VERCEL_PROJECT_ID" ]]; then
+            echo "::error::Set VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID in GitHub Actions secrets."
+            exit 1
+          fi
+
+          deployment_url="$(vercel deploy --yes --target=preview --token "$VERCEL_TOKEN" \
+            --meta githubDeployment=1 --meta "githubCommitRef=$DEPLOY_BRANCH")"
+          printf 'url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
 

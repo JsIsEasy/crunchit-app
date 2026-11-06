@@ -10,8 +10,8 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Could not convert image.";
 }
 
-export function useConversionQueue() {
-  const [mode, setMode] = useState<ConversionMode>("png");
+export function useConversionQueue(initialMode: ConversionMode = "png") {
+  const [mode, setMode] = useState(initialMode);
   const [items, setItems] = useState<QueueItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notice, setNotice] = useState("");

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { TOOL_PAGES } from "@/lib/tool-pages";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -6,6 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "CrunchIt",
     description: "A focused workspace for converting your images.",
     start_url: "/",
+    id: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#0b151b",
     theme_color: "#0b151b",
@@ -13,5 +16,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/brand/app-icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/brand/app-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcuts: TOOL_PAGES.map(({ title, slug }) => ({
+      name: title,
+      url: `/${slug}`,
+    })),
   };
 }
